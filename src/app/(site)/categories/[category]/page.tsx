@@ -38,7 +38,7 @@ export default async function CategoryPage({
       <p className="mb-10 text-base text-muted">{posts.length} posts.</p>
 
       <section>
-        <PostList posts={posts} compact />
+        <PostList posts={posts} dense />
       </section>
     </main>
   );

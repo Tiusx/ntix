@@ -62,3 +62,41 @@ export function getAllMemos(): Memo[] {
     .map(readMemo)
     .sort((a, b) => (a.date < b.date ? 1 : -1));
 }
+
+export function getMemosPage(page: number, pageSize: number): Memo[] {
+  const all = getAllMemos();
+  const start = (page - 1) * pageSize;
+  return all.slice(start, start + pageSize);
+}
+
+export function getMemosPageCount(pageSize: number): number {
+  return Math.max(1, Math.ceil(getAllMemos().length / pageSize));
+}
+
+export function getAllMemoTags(): string[] {
+  const seen = new Set<string>();
+  for (const memo of getAllMemos()) {
+    for (const tag of memo.tags) {
+      if (tag) seen.add(tag);
+    }
+  }
+  return [...seen].sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
+export function getMemosByTag(tag: string): Memo[] {
+  return getAllMemos().filter((memo) => memo.tags.includes(tag));
+}
+
+export function getMemosByTagPage(
+  tag: string,
+  page: number,
+  pageSize: number,
+): Memo[] {
+  const all = getMemosByTag(tag);
+  const start = (page - 1) * pageSize;
+  return all.slice(start, start + pageSize);
+}
+
+export function getMemosByTagPageCount(tag: string, pageSize: number): number {
+  return Math.max(1, Math.ceil(getMemosByTag(tag).length / pageSize));
+}

@@ -2,6 +2,11 @@
   "name": "ntix",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tiusx/ntix.git"
+  },
   "scripts": {
     "dev": "next dev",
     "prebuild": "tsx scripts/sync-memos.ts",
@@ -23,7 +28,8 @@
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
     "remark-frontmatter": "^5.0.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "yet-another-react-lightbox": "^3.32.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

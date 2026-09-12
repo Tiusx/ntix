@@ -18,6 +18,7 @@ function groupPosts(posts: Post[]): ArchiveGroup {
   const grouped = new Map<number, Map<string, Item[]>>();
   for (const post of posts) {
     const d = new Date(post.meta.date);
+    if (Number.isNaN(d.getTime())) continue;
     const year = d.getFullYear();
     const month = d.getMonth() + 1;
     if (!grouped.has(year)) grouped.set(year, new Map());

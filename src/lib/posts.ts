@@ -57,6 +57,7 @@ export function getAllPosts(): Post[] {
 
   return slugs
     .map(readPost)
+    .filter((post) => post.meta.title && post.meta.date)
     .sort((a, b) => (a.meta.date < b.meta.date ? 1 : -1));
 }
 
@@ -84,7 +85,6 @@ export const CATEGORY_META: Record<string, string> = {
   开发: "用代码、框架与工具构建各种东西。",
   生活: "日常、出行与小确幸。",
   随笔: "快笔记、草稿与零散想法。",
-  读书: "读过的书与阅读笔记。",
   其他: "放不进其他分类的内容。",
 };
 

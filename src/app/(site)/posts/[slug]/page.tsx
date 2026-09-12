@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllPosts, getPostMeta } from "@/lib/posts";
 import { BackToPostsLink } from "@/components/back-to-posts-link";
+import LightboxImage from "@/components/lightbox-image";
 
 export const dynamicParams = false;
 
@@ -29,12 +30,12 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
     <main className="content py-12">
       <BackToPostsLink />
 
-      <article className="mt-6">
-        <header className="border-b border-line pb-8">
+      <article className="mt-8">
+        <header>
           <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             {meta.title}
           </h1>
-          <p className="mt-3 text-sm text-muted">
+          <p className="mt-4 text-sm text-muted">
             <time dateTime={meta.date}>{meta.date}</time>
             {meta.category ? (
               <span>
@@ -65,10 +66,15 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
         </header>
 
         {meta.cover ? (
-          <img className="mt-8 rounded-xl border border-line" src={meta.cover} alt="" />
+          <LightboxImage
+            className="mt-8 w-full rounded-xl border border-line"
+            src={meta.cover}
+            alt=""
+            wrapperClassName="block"
+          />
         ) : null}
 
-        <div className="prose mx-auto mt-8">
+        <div className="prose mx-auto mt-10 max-w-[40rem]">
           <Post />
         </div>
       </article>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllTags, getPostsByTag } from "@/lib/posts";
 import { PostList } from "@/components/post-list";
+import { BackButton } from "@/components/back-button";
 
 export const dynamicParams = false;
 
@@ -31,12 +31,7 @@ export default async function TagPage({ params }: PageProps<"/tags/[tag]">) {
 
   return (
     <main className="content pt-12 pb-12">
-      <Link
-        href="/"
-        className="text-sm text-muted transition-colors hover:text-accent"
-      >
-        ← 首页
-      </Link>
+      <BackButton />
 
       <header className="mt-6 border-b border-line pb-8">
         <h1 className="text-3xl font-semibold tracking-tight text-ink">
@@ -46,7 +41,7 @@ export default async function TagPage({ params }: PageProps<"/tags/[tag]">) {
       </header>
 
       <section className="pt-4">
-        <PostList posts={posts} />
+        <PostList posts={posts} dense />
       </section>
     </main>
   );

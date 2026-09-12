@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SITE_CONFIG } from "@/site.config";
+import { LightboxProvider } from "@/components/lightbox-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,7 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <LightboxProvider>{children}</LightboxProvider>
+      </body>
     </html>
   );
 }

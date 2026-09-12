@@ -1,23 +1,8 @@
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { getAllMemos, type Memo } from "@/lib/memos";
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
-
-  if (diff < 60) return "刚刚";
-  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
-  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)} 天前`;
-
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(d);
-}
+import LightboxImage from "@/components/lightbox-image";
+import type { Memo } from "@/lib/memos";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -33,199 +18,223 @@ function isVideo(type: string): boolean {
   return type.startsWith("video/");
 }
 
+function formatAbsoluteDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const MMM = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ][d.getMonth()];
+  return `${MMM} ${`0${d.getDate()}`.slice(-2)}, ${d.getFullYear()} ${`0${d.getHours()}`.slice(-2)}:${`0${d.getMinutes()}`.slice(-2)}`;
+}
+
+function extractImages(content: string): { images: string[]; clean: string } {
+  const images: string[] = [];
+  const clean = content
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, _alt, url: string) => {
+      images.push(url.trim());
+      return "";
+    })
+    .replace(/^\s*#(?!#)\S[^\n]*\n?/m, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { images, clean };
+}
+
+function KotobaImageGrid({ images }: { images: string[] }) {
+  if (images.length === 0) return null;
+
+  if (images.length === 1) {
+    return (
+      <div className="mt-3">
+        <LightboxImage
+          src={images[0]}
+          alt=""
+          loading="lazy"
+          className="max-h-96 w-full cursor-pointer rounded-lg object-cover"
+        />
+      </div>
+    );
+  }
+
+  const gridCols = images.length === 2 ? "grid-cols-2" : "grid-cols-3";
+
+  return (
+    <div className={`mt-3 grid ${gridCols} gap-1`}>
+      {images.map((src, i) => (
+        <LightboxImage
+          key={i}
+          src={src}
+          alt=""
+          loading="lazy"
+          className="h-full w-full cursor-pointer rounded-lg object-cover"
+          wrapperClassName="block aspect-square overflow-hidden"
+        />
+      ))}
+    </div>
+  );
+}
+
 function MediaGrid({ attachments }: { attachments: Memo["attachments"] }) {
   const images = attachments.filter((a) => isImage(a.type));
   const videos = attachments.filter((a) => isVideo(a.type));
   const files = attachments.filter((a) => !isImage(a.type) && !isVideo(a.type));
 
+  if (videos.length === 0 && files.length === 0 && images.length === 0) {
+    return null;
+  }
+
   return (
     <>
-      {images.length > 0 && (
-        <div
-          className={`mt-3 grid gap-2 ${
-            images.length === 1
-              ? "grid-cols-1"
-              : images.length === 2
-                ? "grid-cols-2"
-                : "grid-cols-3"
-          }`}
-        >
-          {images.map((img) => (
-            <a
-              key={img.name}
-              href={img.externalLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group/photo block overflow-hidden rounded-md ring-1 ring-line transition-all duration-200 hover:ring-accent"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.externalLink}
-                alt={img.filename}
-                loading="lazy"
-                className="aspect-square w-full object-cover transition-transform duration-200 group-hover/photo:scale-105"
-              />
-            </a>
-          ))}
+      {images.length === 1 && (
+        <div className="mt-3">
+          <LightboxImage
+            src={images[0].externalLink}
+            alt={images[0].filename}
+            loading="lazy"
+            className="max-h-96 w-full cursor-pointer rounded-lg object-cover"
+          />
         </div>
       )}
-
-      {videos.length > 0 && (
-        <div className="mt-3 space-y-2">
-          {videos.map((v) => (
-            <video
-              key={v.name}
-              src={v.externalLink}
-              controls
-              preload="metadata"
-              className="w-full rounded-md ring-1 ring-line"
+      {images.length >= 2 && (
+        <div
+          className={`mt-3 grid ${
+            images.length === 2 ? "grid-cols-2" : "grid-cols-3"
+          } gap-1`}
+        >
+          {images.map((img) => (
+            <LightboxImage
+              key={img.name}
+              src={img.externalLink}
+              alt={img.filename}
+              loading="lazy"
+              className="h-full w-full cursor-pointer rounded-lg object-cover"
+              wrapperClassName="block aspect-square overflow-hidden"
             />
           ))}
         </div>
       )}
-
-      {files.length > 0 && (
-        <div className="mt-3 space-y-1.5">
-          {files.map((f) => (
-            <a
-              key={f.name}
-              href={f.externalLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between gap-2 rounded-md border border-line px-3 py-2 text-sm text-muted transition-colors hover:border-accent hover:text-accent"
-            >
-              <span className="truncate">
-                <i className="fa-solid fa-paperclip mr-2 text-xs" aria-hidden="true" />
-                {f.filename}
-              </span>
-              <span className="shrink-0 text-xs text-muted">
-                {formatSize(Number(f.size) || 0)}
-              </span>
-            </a>
-          ))}
-        </div>
-      )}
+      {videos.map((v) => (
+        <video
+          key={v.name}
+          src={v.externalLink}
+          controls
+          preload="metadata"
+          className="mt-3 w-full rounded-lg"
+        />
+      ))}
+      <div className="mt-3 space-y-1.5">
+        {files.map((f) => (
+          <a
+            key={f.name}
+            href={f.externalLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm text-sub hover:underline"
+          >
+            <span className="truncate">{f.filename}</span>
+            <span className="shrink-0 text-xs text-muted">
+              {formatSize(Number(f.size) || 0)}
+            </span>
+          </a>
+        ))}
+      </div>
     </>
   );
 }
 
-export function MemosFeed() {
-  const memos = getAllMemos();
-
+export function MemosFeed({ memos }: { memos: Memo[] }) {
   if (memos.length === 0) {
-    return <p className="text-sm text-muted">暂无说说。</p>;
-  }
-
-  const grouped = new Map<string, Memo[]>();
-  for (const memo of memos) {
-    const key = new Intl.DateTimeFormat("zh-CN", {
-      year: "numeric",
-      month: "long",
-    }).format(new Date(memo.date));
-    const list = grouped.get(key) ?? [];
-    list.push(memo);
-    grouped.set(key, list);
+    return <p className="py-8 text-sub">暂无动态。</p>;
   }
 
   return (
     <div>
-      <div className="relative ml-1.5 border-l border-line pl-8">
-        {[...grouped.entries()].map(([month, items]) => (
-          <section key={month} className="relative mb-12">
-            <span className="absolute -left-[37px] top-1.5 h-3 w-3 rounded-full bg-ink" />
-            <h2 className="mb-4 font-serif text-xl font-bold tracking-tight text-ink">
-              {month}
-              <span className="ml-3 font-sans text-sm font-normal text-muted">
-                {items.length} 条
-              </span>
-            </h2>
-            <div className="space-y-4">
-              {items.map((memo, idx) => (
-                <article
-                  key={memo.slug}
-                  className={`relative rounded-lg border transition-colors hover:border-accent ${
-                    memo.pinned ? "border-accent/50 bg-card" : "border-line"
-                  }`}
+      {memos.map((memo) => {
+        const { images: inlineImages, clean } = extractImages(memo.content);
+
+        return (
+          <article
+            key={memo.slug}
+            className="mb-4 rounded-xl border border-line bg-card p-6 shadow-sm shadow-black/5"
+          >
+            <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+              {memo.pinned && (
+                <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs text-accent">
+                  置顶
+                </span>
+              )}
+              <time className="text-sub" dateTime={memo.date}>
+                {formatAbsoluteDate(memo.date)}
+              </time>
+              {memo.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/memos/tag/${encodeURIComponent(tag)}/`}
+                  className="text-accent hover:underline hover:decoration-accent/60"
                 >
-                  <span className="absolute -left-[31px] top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-line" />
-                  <div className="p-4">
-                    {memo.content && (
-                      <div className="memo-md font-serif text-[15px] leading-relaxed text-ink">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            a: ({ href, children }) => (
-                              <a
-                                href={href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-accent underline decoration-accent/50 underline-offset-2 hover:decoration-accent"
-                              >
-                                {children}
-                              </a>
-                            ),
-                            img: ({ src, alt }) => (
-                              <a
-                                href={typeof src === "string" ? src : undefined}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="group/photo my-2 block overflow-hidden rounded-md ring-1 ring-line transition-all duration-200 hover:ring-accent"
-                              >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={typeof src === "string" ? src : ""}
-                                  alt={alt ?? ""}
-                                  loading="lazy"
-                                  className="max-h-[480px] w-full object-cover transition-transform duration-200 group-hover/photo:scale-[1.01]"
-                                />
-                              </a>
-                            ),
-                          }}
-                        >
-                          {memo.content}
-                        </ReactMarkdown>
-                      </div>
-                    )}
-
-                    {memo.attachments?.length > 0 && (
-                      <MediaGrid attachments={memo.attachments} />
-                    )}
-
-                    <div className="mt-3.5 flex flex-wrap items-center gap-2 text-xs text-muted">
-                      {memo.pinned && (
-                        <span className="text-accent">
-                          <i className="fa-solid fa-thumbtack mr-1" aria-hidden="true" />
-                          置顶
-                        </span>
-                      )}
-                      <span>
-                        {formatDate(memo.date)}
-                        {idx === 0 && (
-                          <span className="ml-1.5 text-muted">
-                            ·{" "}
-                            {new Intl.DateTimeFormat("zh-CN", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }).format(new Date(memo.date))}
-                          </span>
-                        )}
-                      </span>
-                      {memo.tags?.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-card px-2 py-0.5 text-muted ring-1 ring-line"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </article>
+                  #{tag}
+                </Link>
               ))}
             </div>
-          </section>
-        ))}
-      </div>
+
+            <hr className="border-line/40" />
+
+            {clean && (
+              <div className="text-[15px] leading-relaxed [&_p]:my-3 [&_p:last-child]:mb-0">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-4 decoration-ink/35 hover:decoration-ink"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    img: ({ src, alt }) => (
+                      <LightboxImage
+                        src={typeof src === "string" ? src : ""}
+                        alt={alt ?? ""}
+                        loading="lazy"
+                        className="my-2 cursor-pointer rounded-lg"
+                      />
+                    ),
+                    code({ className, children }) {
+                      const isBlock = /language-[\w+-]+/.test(className ?? "");
+                      if (!isBlock) {
+                        return (
+                          <code className="rounded border border-line/80 bg-accent/10 px-1.5 py-0.5 font-mono text-[0.85em]">
+                            {children}
+                          </code>
+                        );
+                      }
+                      return (
+                        <code
+                          className="block overflow-x-auto rounded-lg border border-line bg-card p-4 font-mono text-[0.85em] leading-relaxed"
+                        >
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                >
+                  {clean}
+                </ReactMarkdown>
+              </div>
+            )}
+
+            {inlineImages.length > 0 && <KotobaImageGrid images={inlineImages} />}
+
+            {memo.attachments?.length > 0 && (
+              <MediaGrid attachments={memo.attachments} />
+            )}
+          </article>
+        );
+      })}
     </div>
   );
 }
