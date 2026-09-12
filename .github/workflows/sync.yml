@@ -1,0 +1,57 @@
+# 前置准备（一次性）：
+# 1. 将本仓库推送到 GitHub，默认分支为 main
+# 2. Cloudflare Pages 连接本仓库：构建命令 pnpm build，输出目录 out，
+#    Node 版本 24（也可在项目内放 .nvmrc），安装命令 pnpm install
+#    （构建时会自动执行 prebuild 同步 memos）
+# 3. 可选：在 repository variables 添加 MEMOS_API 覆盖 memos API 地址（默认用 memos.tius.cn）
+
+name: Sync Memos
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync memos
+        env:
+          MEMOS_API: ${{ vars.MEMOS_API }}
+        run: pnpm sync:memos:strict
+
+      - name: Commit and push generated content
+        run: |
+          git checkout -B main
+          git config user.name "ntix-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add content
+          if git diff --cached --quiet; then
+            echo "No content changes; skip commit."
+          else
+            git commit -m "chore(content): sync memos"
+            git push origin main
+          fi

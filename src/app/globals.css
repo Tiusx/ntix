@@ -1,0 +1,127 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* ─── 全局令牌（与主题无关）─────────────────────────────────────────── */
+
+:root {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia,
+    serif;
+  --content-width: 45rem;
+}
+
+/* ─── 主题令牌（data-theme 切换）────────────────────────────────────── */
+
+html[data-theme="nord"] {
+  color-scheme: light;
+
+  --bg: #fbfbfb;
+  --surface: #ffffff;
+  --fg: #101828;
+  --secondary: #475467;
+  --muted: #98a2b3;
+  --accent: #4f46e5;
+  --border: #e4e7ec;
+}
+
+html[data-theme="graphite"] {
+  color-scheme: dark;
+
+  --bg: #1d2021;
+  --surface: #262a2b;
+  --fg: #e8e4dc;
+  --secondary: #8a8378;
+  --muted: #b6ad9f;
+  --accent: #d4a373;
+  --border: #3a3830;
+}
+
+html[data-theme="flax"] {
+  color-scheme: light;
+
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --fg: #292524;
+  --secondary: #57534e;
+  --muted: #a8a29e;
+  --accent: #0d9488;
+  --border: #e7e5e4;
+}
+
+/* ─── Tailwind 语义色映射 ───────────────────────────────────────────── */
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+
+  --color-page: var(--bg);
+  --color-card: var(--surface);
+  --color-ink: var(--fg);
+  --color-sub: var(--secondary);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-line: var(--border);
+}
+
+/* ─── 基础 ──────────────────────────────────────────────────────────── */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* 布局容器：所有页面共用 */
+.content {
+  width: 100%;
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+/* ─── 文章排版（prose）───────────────────────────────────────────────── */
+
+.prose {
+  color: var(--fg);
+
+  --tw-prose-body: var(--fg);
+  --tw-prose-headings: var(--fg);
+  --tw-prose-links: var(--accent);
+  --tw-prose-bold: var(--fg);
+  --tw-prose-counters: var(--muted);
+  --tw-prose-bullets: var(--muted);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--fg);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted);
+  --tw-prose-code: var(--fg);
+  --tw-prose-pre-code: var(--fg);
+  --tw-prose-pre-bg: var(--surface);
+}
+
+.prose :where(a) {
+  text-decoration-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  text-underline-offset: 3px;
+}
+
+.prose :where(pre) {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.prose :where(img) {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}

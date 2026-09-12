@@ -1,0 +1,64 @@
+import fs from "node:fs";
+import path from "node:path";
+import matter from "gray-matter";
+
+const MEMOS_DIR = path.join(process.cwd(), "content", "memos");
+
+export interface MemoAttachment {
+  name: string;
+  filename: string;
+  externalLink: string;
+  type: string;
+  size: string;
+}
+
+export interface Memo {
+  slug: string;
+  content: string;
+  date: string;
+  tags: string[];
+  pinned: boolean;
+  attachments: MemoAttachment[];
+}
+
+function normalizeMemo(data: Record<string, unknown>): Omit<Memo, "content"> {
+  const asString = (value: unknown): string =>
+    typeof value === "string" ? value : "";
+  const asStringArray = (value: unknown): string[] =>
+    Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string")
+      : [];
+  const asAttachments = (value: unknown): MemoAttachment[] =>
+    Array.isArray(value)
+      ? value.filter(
+          (item): item is MemoAttachment =>
+            typeof item === "object" && item !== null && "externalLink" in item,
+        )
+      : [];
+
+  return {
+    slug: asString(data.slug),
+    date: asString(data.date),
+    tags: asStringArray(data.tags),
+    pinned: Boolean(data.pinned),
+    attachments: asAttachments(data.attachments),
+  };
+}
+
+function readMemo(slug: string): Memo {
+  const raw = fs.readFileSync(path.join(MEMOS_DIR, `${slug}.md`), "utf-8");
+  const { data, content } = matter(raw);
+  return { ...normalizeMemo(data as Record<string, unknown>), content };
+}
+
+export function getAllMemos(): Memo[] {
+  if (!fs.existsSync(MEMOS_DIR)) return [];
+  const slugs = fs
+    .readdirSync(MEMOS_DIR)
+    .filter((file) => file.endsWith(".md"))
+    .map((file) => file.replace(/\.md$/, ""));
+
+  return slugs
+    .map(readMemo)
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+}
