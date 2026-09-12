@@ -156,7 +156,7 @@ export function MemosFeed({ memos }: { memos: Memo[] }) {
         return (
           <article
             key={memo.slug}
-            className="mb-4 rounded-xl border border-line bg-card p-6 shadow-sm shadow-black/5"
+            className="mb-4 rounded-xl border border-line bg-card p-6 shadow-sm shadow-black/5 memo-card"
           >
             <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
               {memo.pinned && (
@@ -181,7 +181,7 @@ export function MemosFeed({ memos }: { memos: Memo[] }) {
             <hr className="border-line/40" />
 
             {clean && (
-              <div className="text-[15px] leading-relaxed [&_p]:my-3 [&_p:last-child]:mb-0">
+              <div className="text-[15px] leading-relaxed [&_p]:my-3 [&_p:last-child]:mb-0" data-memo-content>
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{

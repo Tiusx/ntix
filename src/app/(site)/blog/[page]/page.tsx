@@ -22,7 +22,28 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { page } = await params;
   const current = Number(page);
-  return { title: `文章 · 第 ${current} 页` };
+  const baseUrl = SITE_CONFIG.siteUrl;
+  const canonical = current === 1 ? `${baseUrl}/blog/` : `${baseUrl}/blog/${current}/`;
+  return {
+    title: `文章 · 第 ${current} 页`,
+    description: `文章列表第 ${current} 页，共 ${getPostPageCount(SITE_CONFIG.postsPerPage)} 页`,
+    alternates: { canonical },
+    openGraph: {
+      title: `文章列表 · 第 ${current} 页`,
+      description: `文章列表第 ${current} 页`,
+      type: "website",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary",
+      title: `文章列表 · 第 ${current} 页`,
+      description: `文章列表第 ${current} 页`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
 
 export default async function BlogPage({

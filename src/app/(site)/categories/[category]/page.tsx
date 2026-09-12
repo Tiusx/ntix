@@ -25,7 +25,29 @@ export async function generateMetadata({
   params: Promise<{ category: string }>;
 }): Promise<Metadata> {
   const { category } = await params;
-  return { title: decodeURIComponent(category) };
+  const name = decodeURIComponent(category);
+  const baseUrl = SITE_CONFIG.siteUrl;
+  const canonical = `${baseUrl}/categories/${encodeURIComponent(name)}/`;
+  return {
+    title: name,
+    description: `${name} 分类下的文章`,
+    alternates: { canonical },
+    openGraph: {
+      title: `${name} · 分类`,
+      description: `${name} 分类下的文章`,
+      type: "website",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary",
+      title: `${name} · 分类`,
+      description: `${name} 分类下的文章`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
 
 export default async function CategoryPage({

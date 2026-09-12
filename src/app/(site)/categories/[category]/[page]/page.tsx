@@ -38,7 +38,28 @@ export async function generateMetadata({
   const { category, page } = await params;
   const name = decodeURIComponent(category);
   const current = Number(page);
-  return { title: `${name} · 第 ${current} 页` };
+  const baseUrl = SITE_CONFIG.siteUrl;
+  const canonical = `${baseUrl}/categories/${encodeURIComponent(name)}/${current}/`;
+  return {
+    title: `${name} · 第 ${current} 页`,
+    description: `${name} 分类第 ${current} 页`,
+    alternates: { canonical },
+    openGraph: {
+      title: `${name} · 第 ${current} 页`,
+      description: `${name} 分类第 ${current} 页`,
+      type: "website",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary",
+      title: `${name} · 第 ${current} 页`,
+      description: `${name} 分类第 ${current} 页`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
 
 export default async function CategoryPage({

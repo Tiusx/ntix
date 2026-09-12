@@ -24,7 +24,29 @@ export async function generateMetadata({
   params: Promise<{ tag: string }>;
 }): Promise<Metadata> {
   const { tag } = await params;
-  return { title: `#${decodeURIComponent(tag)}` };
+  const name = decodeURIComponent(tag);
+  const baseUrl = SITE_CONFIG.siteUrl;
+  const canonical = `${baseUrl}/tags/${encodeURIComponent(name)}/`;
+  return {
+    title: `#${name}`,
+    description: `标签 "${name}" 下的文章`,
+    alternates: { canonical },
+    openGraph: {
+      title: `#${name} · 标签`,
+      description: `标签 "${name}" 下的文章`,
+      type: "website",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary",
+      title: `#${name} · 标签`,
+      description: `标签 "${name}" 下的文章`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
 
 export default async function TagPage({

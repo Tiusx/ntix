@@ -5,6 +5,7 @@ import { getAllPosts, getPostMeta } from "@/lib/posts";
 import { BackToPostsLink } from "@/components/back-to-posts-link";
 import LightboxImage from "@/components/lightbox-image";
 import { WalineComments } from "@/components/waline-comments";
+import { SITE_CONFIG } from "@/site.config";
 
 export const dynamicParams = false;
 
@@ -24,8 +25,44 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const meta = getPostMeta(decodeURIComponent(slug));
-  return { title: meta?.title ?? "未找到" };
+  const name = decodeURIComponent(slug);
+  const meta = getPostMeta(name);
+  if (!meta) return { title: "未找到" };
+
+  const url = `${SITE_CONFIG.siteUrl}/posts/${meta.slug}/`;
+  const description = meta.summary || meta.title;
+  const image = meta.cover || `${SITE_CONFIG.siteUrl}/avatar.jpg`;
+
+  return {
+    title: meta.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      title: meta.title,
+      description,
+      url,
+      siteName: SITE_CONFIG.title,
+      publishedTime: meta.date,
+      modifiedTime: meta.date,
+      authors: [SITE_CONFIG.title],
+      tags: meta.tags,
+      images: [{ url: image, alt: meta.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: meta.title,
+      description,
+      images: [image],
+    },
+    other: {
+      "article:published_time": meta.date,
+      "article:modified_time": meta.date,
+      "article:author": SITE_CONFIG.title,
+      "article:section": meta.category || "",
+      "article:tag": meta.tags.join(","),
+    },
+  };
 }
 
 export default async function PostPage({
@@ -39,9 +76,42 @@ export default async function PostPage({
   if (!meta) notFound();
 
   const { default: Post } = await import(`@content/posts/${name}.md`);
+  const url = `${SITE_CONFIG.siteUrl}/posts/${meta.slug}/`;
+  const image = meta.cover || `${SITE_CONFIG.siteUrl}/avatar.jpg`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: meta.title,
+    description: meta.summary || meta.title,
+    image,
+    datePublished: meta.date,
+    dateModified: meta.date,
+    author: {
+      "@type": "Person",
+      name: SITE_CONFIG.title,
+      url: SITE_CONFIG.siteUrl,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_CONFIG.title,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_CONFIG.siteUrl}/avatar.jpg`,
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": url,
+    },
+  };
 
   return (
     <main className="content py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <BackToPostsLink />
 
       <article className="mt-8">
@@ -83,7 +153,7 @@ export default async function PostPage({
           <LightboxImage
             className="mt-8 w-full rounded-xl border border-line"
             src={meta.cover}
-            alt=""
+            alt={meta.title}
             wrapperClassName="block"
           />
         ) : null}

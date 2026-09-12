@@ -183,4 +183,21 @@ body {
 .prose :where(img) {
   border: 1px solid var(--border);
   border-radius: 10px;
+  max-width: 100%;
+  height: auto;
 }
+
+/* 移动端防溢出：仅最小必要修改 */
+html, body { overflow-x: hidden; }
+.content { overflow-x: hidden; }
+.prose { overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
+.prose :where(img) { max-width: 100%; height: auto; }
+.prose :where(table) { display: block; width: 100%; overflow-x: auto; }
+.prose :where(pre) { max-width: 100%; overflow-x: auto; }
+
+/* Memos Feed 卡片内内容防溢出：强制换行，不截断 */
+article.memo-card [data-memo-content] { overflow-wrap: anywhere; word-break: break-word; }
+article.memo-card img { max-width: 100%; height: auto; display: block; }
+article.memo-card pre { overflow-x: auto; max-width: 100%; }
+article.memo-card code { overflow-wrap: anywhere; word-break: break-word; }
+article.memo-card a { word-break: break-all; }

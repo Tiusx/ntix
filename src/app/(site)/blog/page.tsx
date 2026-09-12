@@ -6,6 +6,17 @@ import { SITE_CONFIG } from "@/site.config";
 
 export const metadata: Metadata = {
   title: "文章",
+  description: "技术笔记、开发实录与思考记录",
+  openGraph: {
+    title: "文章列表",
+    description: "技术笔记、开发实录与思考记录",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "文章列表",
+    description: "技术笔记、开发实录与思考记录",
+  },
 };
 
 export default function BlogPage() {

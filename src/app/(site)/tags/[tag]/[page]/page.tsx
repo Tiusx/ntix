@@ -40,7 +40,28 @@ export async function generateMetadata({
   const { tag, page } = await params;
   const name = decodeURIComponent(tag);
   const current = Number(page);
-  return { title: `#${name} · 第 ${current} 页` };
+  const baseUrl = SITE_CONFIG.siteUrl;
+  const canonical = `${baseUrl}/tags/${encodeURIComponent(name)}/${current}/`;
+  return {
+    title: `#${name} · 第 ${current} 页`,
+    description: `标签 "${name}" 第 ${current} 页`,
+    alternates: { canonical },
+    openGraph: {
+      title: `#${name} · 第 ${current} 页`,
+      description: `标签 "${name}" 第 ${current} 页`,
+      type: "website",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary",
+      title: `#${name} · 第 ${current} 页`,
+      description: `标签 "${name}" 第 ${current} 页`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
 
 export default async function TagPage({
