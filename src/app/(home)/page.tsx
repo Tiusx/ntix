@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SITE_CONFIG } from "@/site.config";
+import { Footer } from "@/components/footer";
 
 const SECTIONS: [string, string][] = [
   ["/about/", "@Me"],
@@ -13,22 +14,21 @@ const SECTIONS: [string, string][] = [
 
 const SOCIALS: [string, string, string][] = [
   ["https://github.com/Tiusx", "fa-brands fa-github", "GitHub"],
-  ["https://twitter.com", "fa-brands fa-x-twitter", "Twitter"],
+  ["https://space.bilibili.com/270426311", "fa-brands fa-bilibili", "Bilibili"],
   ["mailto:hi@tius.cn", "fa-solid fa-envelope", "Email"],
   ["/rss.xml", "fa-solid fa-rss", "RSS"],
 ];
 
 export default function Home() {
   return (
-    <main className="flex min-h-svh items-center justify-center bg-page px-6 py-16">
+    <><main className="flex min-h-svh items-center justify-center bg-page px-6 py-16">
       <div className="flex w-full max-w-[680px] flex-col items-center text-center">
 
         {/* Avatar */}
         <div className="group/avatar relative size-24">
           <span
             aria-hidden="true"
-            className="absolute -inset-1.5 rounded-full border border-dashed border-accent/40 [animation:spin_16s_linear_infinite]"
-          />
+            className="absolute -inset-1.5 rounded-full border border-dashed border-accent/40 [animation:spin_16s_linear_infinite]" />
           <div className="flex size-24 items-center justify-center overflow-hidden rounded-full bg-card text-ink shadow-lg shadow-accent/10 ring-1 ring-line transition-transform duration-300 ease-out group-hover/avatar:scale-105">
             {SITE_CONFIG.avatar ? (
               <img
@@ -36,8 +36,7 @@ export default function Home() {
                 alt="头像"
                 width={96}
                 height={96}
-                className="size-full"
-              />
+                className="size-full" />
             ) : (
               <i className="fa-solid fa-feather text-3xl" aria-hidden="true" />
             )}
@@ -72,8 +71,7 @@ export default function Home() {
             >
               <i
                 className={`${icon} text-[0.85rem] text-muted transition-colors duration-200 group-hover/soc:text-ink`}
-                aria-hidden="true"
-              />
+                aria-hidden="true" />
               <span className="transition-colors duration-200 group-hover/soc:text-ink">
                 {label}
               </span>
@@ -98,11 +96,7 @@ export default function Home() {
             </span>
           ))}
         </nav>
-
-        <p className="mt-7 text-[0.75rem] text-muted">
-          © {new Date().getFullYear()} {SITE_CONFIG.title}
-        </p>
       </div>
-    </main>
+    </main><Footer /></>
   );
 }

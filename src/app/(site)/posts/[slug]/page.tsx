@@ -46,7 +46,7 @@ export default async function PostPage({
 
       <article className="mt-8">
         <header>
-          <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
             {meta.title}
           </h1>
           <p className="mt-4 text-sm text-muted">

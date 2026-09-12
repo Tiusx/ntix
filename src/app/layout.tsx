@@ -30,6 +30,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         />
+        <script
+          async
+          src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"
+        />
       </head>
       <body>
         <ThemeToggle />

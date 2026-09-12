@@ -62,9 +62,9 @@ ExecStart=/usr/bin/docker run --rm --network host --name cloudflared \
   --protocol http2 --conn 1 --edge-ip-version 4 run --token <TOKEN>
 ```
 
-> 去Cloudflare中设置路由 指向本地memos服务 `http://localhost:5230`，**别写成 https**——后端是明文 HTTP，写错就是 502。
+> 或在Cloudflare中设置路由 指向本地memos服务 `http://localhost:5230`，**别写成 https**——后端是明文 HTTP，写错就是 502。
 
-![Cloudflare中设置路由](https://r2.tius.cn/assets/1789190504_9f56628d-dc10-458d-8f48-0ab6f1ad8e29_1788203048224.png)
+![Cloudflare中设置路由](https://r2.tius.cn/media/1789196699807.png)
 
 ## 小结
 
