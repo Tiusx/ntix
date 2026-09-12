@@ -40,7 +40,7 @@ jobs:
 
       - name: Sync memos
         env:
-          MEMOS_API: ${{ vars.MEMOS_API }}
+          MEMOS_API: ${{ vars.MEMOS_API || 'https://memos.tius.cn/api/v1/memos' }}
         run: pnpm sync:memos:strict
 
       - name: Commit and push generated content

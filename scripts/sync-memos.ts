@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const MEMOS_API =
-  process.env.MEMOS_API ?? "https://memos.tius.cn/api/v1/memos";
+  process.env.MEMOS_API || "https://memos.tius.cn/api/v1/memos";
 const OUTPUT_DIR = path.join(process.cwd(), "content", "memos");
 const PAGE_SIZE = 100;
 
