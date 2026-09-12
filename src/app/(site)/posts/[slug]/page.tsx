@@ -14,13 +14,19 @@ export function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/posts/[slug]">): Promise<Metadata> {
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const meta = getPostMeta(slug);
   return { title: meta?.title ?? "未找到" };
 }
 
-export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const meta = getPostMeta(slug);
   if (!meta) notFound();

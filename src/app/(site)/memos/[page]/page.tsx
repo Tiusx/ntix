@@ -18,7 +18,9 @@ export function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/memos/[page]">): Promise<Metadata> {
+}: {
+  params: Promise<{ page: string }>;
+}): Promise<Metadata> {
   const { page } = await params;
   const current = Number(page);
   return { title: `说说 · 第 ${current} 页` };
@@ -26,7 +28,9 @@ export async function generateMetadata({
 
 export default async function MemosPage({
   params,
-}: PageProps<"/memos/[page]">) {
+}: {
+  params: Promise<{ page: string }>;
+}) {
   const { page } = await params;
   const current = Number(page);
   const pageCount = getMemosPageCount(MEMOS_PER_PAGE);

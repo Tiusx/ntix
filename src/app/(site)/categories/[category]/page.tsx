@@ -18,14 +18,18 @@ export function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/categories/[category]">): Promise<Metadata> {
+}: {
+  params: Promise<{ category: string }>;
+}): Promise<Metadata> {
   const { category } = await params;
   return { title: decodeURIComponent(category) };
 }
 
 export default async function CategoryPage({
   params,
-}: PageProps<"/categories/[category]">) {
+}: {
+  params: Promise<{ category: string }>;
+}) {
   const { category } = await params;
   const name = decodeURIComponent(category);
   const posts = getPostsByCategory(name);

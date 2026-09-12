@@ -17,13 +17,19 @@ export function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/blog/[page]">): Promise<Metadata> {
+}: {
+  params: Promise<{ page: string }>;
+}): Promise<Metadata> {
   const { page } = await params;
   const current = Number(page);
   return { title: `文章 · 第 ${current} 页` };
 }
 
-export default async function BlogPage({ params }: PageProps<"/blog/[page]">) {
+export default async function BlogPage({
+  params,
+}: {
+  params: Promise<{ page: string }>;
+}) {
   const { page } = await params;
   const current = Number(page);
   const pageCount = getPostPageCount(SITE_CONFIG.postsPerPage);

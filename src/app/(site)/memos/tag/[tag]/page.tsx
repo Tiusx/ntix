@@ -18,14 +18,18 @@ export function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/memos/tag/[tag]">): Promise<Metadata> {
+}: {
+  params: Promise<{ tag: string }>;
+}): Promise<Metadata> {
   const { tag } = await params;
   return { title: `#${decodeURIComponent(tag)}` };
 }
 
 export default async function MemosTagPage({
   params,
-}: PageProps<"/memos/tag/[tag]">) {
+}: {
+  params: Promise<{ tag: string }>;
+}) {
   const { tag } = await params;
   const name = decodeURIComponent(tag);
   const memos = getMemosByTag(name);
