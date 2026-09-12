@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { FRIENDS } from "@/data/friends";
+import { WalineComments } from "@/components/waline-comments";
 
 export const metadata: Metadata = {
   title: "友链",
@@ -62,6 +63,8 @@ export default function FriendsPage() {
           我会尽快审核并收录。
         </p>
       </section>
+
+      <WalineComments path="/friends/" />
     </main>
   );
 }

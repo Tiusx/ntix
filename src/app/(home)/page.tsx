@@ -2,13 +2,13 @@ import Link from "next/link";
 import { SITE_CONFIG } from "@/site.config";
 
 const SECTIONS: [string, string][] = [
-  ["/blog/", "文章"],
-  ["/archive/", "笔记"],
-  ["/about/", "关于"],
-  ["/photos/", "摄影"],
-  ["/books/", "书单"],
-  ["/friends/", "友链"],
-  ["/memos/", "说说"],
+  ["/about/", "@Me"],
+
+  ["/blog/", "博客"],
+  // ["/archive/", "项目"],
+  // ["/photos/", "摄影"],
+  ["/friends/", "朋友"],
+  ["/memos/", "碎碎念"],
 ];
 
 const SOCIALS: [string, string, string][] = [

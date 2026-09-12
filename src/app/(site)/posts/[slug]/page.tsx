@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getAllPosts, getPostMeta } from "@/lib/posts";
 import { BackToPostsLink } from "@/components/back-to-posts-link";
 import LightboxImage from "@/components/lightbox-image";
+import { WalineComments } from "@/components/waline-comments";
 
 export const dynamicParams = false;
 
@@ -77,6 +78,8 @@ export default async function PostPage({ params }: PageProps<"/posts/[slug]">) {
         <div className="prose mx-auto mt-10 max-w-[40rem]">
           <Post />
         </div>
+
+        <WalineComments path={`/posts/${slug}/`} />
       </article>
     </main>
   );
