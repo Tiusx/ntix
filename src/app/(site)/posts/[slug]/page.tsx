@@ -9,7 +9,13 @@ import { WalineComments } from "@/components/waline-comments";
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return getAllPosts().map((post) => ({ slug: post.slug }));
+  const raw = getAllPosts().map((post) => ({ slug: post.slug }));
+  if (process.env.NODE_ENV === "development") {
+    return raw.concat(
+      raw.map(({ slug }) => ({ slug: encodeURIComponent(slug) }))
+    );
+  }
+  return raw;
 }
 
 export async function generateMetadata({
@@ -18,7 +24,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const meta = getPostMeta(slug);
+  const meta = getPostMeta(decodeURIComponent(slug));
   return { title: meta?.title ?? "未找到" };
 }
 
@@ -28,10 +34,11 @@ export default async function PostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const meta = getPostMeta(slug);
+  const name = decodeURIComponent(slug);
+  const meta = getPostMeta(name);
   if (!meta) notFound();
 
-  const { default: Post } = await import(`@content/posts/${slug}.md`);
+  const { default: Post } = await import(`@content/posts/${name}.md`);
 
   return (
     <main className="content py-12">
@@ -85,7 +92,7 @@ export default async function PostPage({
           <Post />
         </div>
 
-        <WalineComments path={`/posts/${slug}/`} />
+        <WalineComments path={`/posts/${name}/`} />
       </article>
     </main>
   );

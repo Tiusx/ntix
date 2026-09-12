@@ -37,23 +37,26 @@ export function PostList({
           <li key={post.slug}>
             <Link
               href={postHref(post.slug, page)}
-              className="group flex flex-col gap-0.5 py-3 sm:flex-row sm:items-baseline sm:gap-6"
+              className="group flex flex-col gap-1.5 py-3.5"
             >
-              <time
-                dateTime={post.meta.date}
-                className="font-mono text-sm tabular-nums text-muted sm:w-24 sm:shrink-0"
-              >
-                {formatDateShort(post.meta.date)}
-              </time>
-              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 font-serif text-[17px] leading-snug tracking-wide">
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
+                <time
+                  dateTime={post.meta.date}
+                  className="font-mono text-sm tabular-nums text-muted"
+                >
+                  {formatDateShort(post.meta.date)}
+                </time>
+                {post.meta.category ? (
+                  <span className="text-sm leading-none text-muted">
+                    in{" "}
+                    <span className="text-ink">{post.meta.category}</span>
+                  </span>
+                ) : null}
+              </span>
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 font-serif text-base font-semibold leading-snug tracking-wide">
                 <span className="transition-colors group-hover:underline group-hover:decoration-accent group-hover:underline-offset-4">
                   {post.meta.title}
                 </span>
-                {post.meta.category ? (
-                  <span className="font-sans text-xs text-muted">
-                    · {post.meta.category}
-                  </span>
-                ) : null}
               </span>
             </Link>
           </li>

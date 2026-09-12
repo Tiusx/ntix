@@ -81,7 +81,7 @@ export default function ArchivePage() {
                             className="group relative flex items-baseline gap-4 py-1.5"
                           >
                             <span className="absolute -left-[31px] top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-line transition-colors group-hover:bg-ink" />
-                            <span className="min-w-0 truncate font-serif text-[17px] tracking-wide text-ink underline-offset-4 transition-colors group-hover:underline group-hover:decoration-accent">
+                            <span className="min-w-0 truncate font-serif text-base tracking-wide text-ink underline-offset-4 transition-colors group-hover:underline group-hover:decoration-accent">
                               {item.title}
                             </span>
                           </Link>

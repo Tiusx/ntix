@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getAllTags, getPostsByTag } from "@/lib/posts";
+import { getAllTags, getPostsByTag, getPostsByTagPage, getPostsByTagPageCount } from "@/lib/posts";
 import { PostList } from "@/components/post-list";
+import { Pagination } from "@/components/pagination";
+import { SITE_CONFIG } from "@/site.config";
 import { BackButton } from "@/components/back-button";
 
 export const dynamicParams = false;
@@ -32,8 +34,11 @@ export default async function TagPage({
 }) {
   const { tag } = await params;
   const name = decodeURIComponent(tag);
-  const posts = getPostsByTag(name);
-  if (posts.length === 0) notFound();
+  const allPosts = getPostsByTag(name);
+  if (allPosts.length === 0) notFound();
+
+  const pageCount = getPostsByTagPageCount(name, SITE_CONFIG.postsPerPage);
+  const posts = pageCount === 1 ? allPosts : getPostsByTagPage(name, 1, SITE_CONFIG.postsPerPage);
 
   return (
     <main className="content pt-12 pb-12">
@@ -43,12 +48,14 @@ export default async function TagPage({
         <h1 className="text-3xl font-semibold tracking-tight text-ink">
           #{name}
         </h1>
-        <p className="mt-2 text-sm text-muted">{posts.length} 篇</p>
+        <p className="mt-2 text-sm text-muted">{allPosts.length} 篇</p>
       </header>
 
       <section className="pt-4">
-        <PostList posts={posts} dense />
+        <PostList posts={posts} dense page={1} />
       </section>
+
+      {pageCount > 1 && <Pagination current={1} total={pageCount} />}
     </main>
   );
 }

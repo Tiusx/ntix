@@ -126,3 +126,25 @@ export function getPostsByCategory(category: string): Post[] {
 export function getPostsByTag(tag: string): Post[] {
   return getAllPosts().filter((post) => post.meta.tags.includes(tag));
 }
+
+export function getPostsByTagPage(tag: string, page: number, pageSize: number): Post[] {
+  const all = getPostsByTag(tag);
+  const start = (page - 1) * pageSize;
+  return all.slice(start, start + pageSize);
+}
+
+export function getPostsByTagPageCount(tag: string, pageSize: number): number {
+  const all = getPostsByTag(tag);
+  return Math.max(1, Math.ceil(all.length / pageSize));
+}
+
+export function getPostsByCategoryPage(category: string, page: number, pageSize: number): Post[] {
+  const all = getPostsByCategory(category);
+  const start = (page - 1) * pageSize;
+  return all.slice(start, start + pageSize);
+}
+
+export function getPostsByCategoryPageCount(category: string, pageSize: number): number {
+  const all = getPostsByCategory(category);
+  return Math.max(1, Math.ceil(all.length / pageSize));
+}

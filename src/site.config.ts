@@ -3,11 +3,11 @@ export type ThemeKey = "nord" | "graphite" | "flax";
 export const SITE_CONFIG = {
   avatar: "/avatar.jpg",
   title: "Tiusx",
-  description: "于山与月之间，独立写作，记录日常思考。",
-  tagline: "独立写作 · 日常思考",
+  description: "照进黑暗中的那束光为救赎",
+  tagline: "凡是过往，皆为序章",
   lang: "zh-CN",
-  siteUrl: process.env.SITE_URL || "https://ntix.example.com",
+  siteUrl: process.env.SITE_URL || "https://tius.cn",
   feedPath: "/rss.xml",
   postsPerPage: 10,
-  theme: "graphite" as ThemeKey,
+  theme: undefined as string | undefined,
 };

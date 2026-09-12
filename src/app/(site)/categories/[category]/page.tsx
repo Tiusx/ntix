@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { CATEGORY_META_KEYS, getPostsByCategory } from "@/lib/posts";
+import { notFound } from "next/navigation";
+import { CATEGORY_META_KEYS, getPostsByCategory, getPostsByCategoryPage, getPostsByCategoryPageCount } from "@/lib/posts";
 import { PostList } from "@/components/post-list";
+import { Pagination } from "@/components/pagination";
+import { SITE_CONFIG } from "@/site.config";
 
 export const dynamicParams = false;
 
@@ -32,18 +35,22 @@ export default async function CategoryPage({
 }) {
   const { category } = await params;
   const name = decodeURIComponent(category);
-  const posts = getPostsByCategory(name);
+  const allPosts = getPostsByCategory(name);
+  const pageCount = getPostsByCategoryPageCount(name, SITE_CONFIG.postsPerPage);
+  const posts = pageCount === 1 ? allPosts : getPostsByCategoryPage(name, 1, SITE_CONFIG.postsPerPage);
 
   return (
     <main className="content pt-12 pb-12">
       <h1 className="mb-3 font-serif text-2xl font-extrabold tracking-tight text-ink md:text-3xl">
         {name}
       </h1>
-      <p className="mb-10 text-base text-muted">{posts.length} posts.</p>
+      <p className="mb-10 text-base text-muted">{allPosts.length} posts.</p>
 
       <section>
-        <PostList posts={posts} dense />
+        <PostList posts={posts} dense page={1} />
       </section>
+
+      {pageCount > 1 && <Pagination current={1} total={pageCount} />}
     </main>
   );
 }

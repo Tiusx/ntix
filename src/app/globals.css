@@ -11,7 +11,33 @@
   --content-width: 45rem;
 }
 
-/* ─── 主题令牌（data-theme 切换）────────────────────────────────────── */
+/* ─── 主题令牌（data-theme 切换 + 系统跟随）──────────────────────── */
+
+/* 未指定 data-theme 时跟随系统 */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #fbfbfb;
+    --surface: #ffffff;
+    --fg: #101828;
+    --secondary: #475467;
+    --muted: #98a2b3;
+    --accent: #4f46e5;
+    --border: #e4e7ec;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #1d2021;
+    --surface: #262a2b;
+    --fg: #e8e4dc;
+    --secondary: #8a8378;
+    --muted: #b6ad9f;
+    --accent: #d4a373;
+    --border: #3a3830;
+  }
+}
 
 html[data-theme="nord"] {
   color-scheme: light;
@@ -68,6 +94,7 @@ html[data-theme="flax"] {
 
 html {
   -webkit-text-size-adjust: 100%;
+  font-size: 0.9375rem; /* 15px：整体字号缩小 */
 }
 
 body {
