@@ -197,7 +197,80 @@ html, body { overflow-x: hidden; }
 
 /* Memos Feed 卡片内内容防溢出：强制换行，不截断 */
 article.memo-card [data-memo-content] { overflow-wrap: anywhere; word-break: break-word; }
-article.memo-card img { max-width: 100%; height: auto; display: block; }
 article.memo-card pre { overflow-x: auto; max-width: 100%; }
 article.memo-card code { overflow-wrap: anywhere; word-break: break-word; }
 article.memo-card a { word-break: break-all; }
+
+/* Memos 图片统一容器 */
+.memo-img-wrap {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: var(--border);
+}
+.memo-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.memo-img-wrap.aspect-16-9 { aspect-ratio: 16/9; }
+.memo-img-wrap.aspect-4-3 { aspect-ratio: 4/3; }
+.memo-img-wrap.aspect-square { aspect-ratio: 1; }
+
+/* Memos 音频播放器样式 */
+.memo-audio-player audio {
+  height: 36px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+.memo-audio-player audio::-webkit-media-controls-panel {
+  background: var(--surface);
+}
+
+.memo-audio-player audio::-webkit-media-controls-play-button,
+.memo-audio-player audio::-webkit-media-controls-mute-button {
+  color: var(--fg);
+}
+
+.memo-audio-player audio::-webkit-media-controls-time-current-display,
+.memo-audio-player audio::-webkit-media-controls-time-remaining-display {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memo-audio-player audio::-webkit-media-controls-timeline {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.memo-audio-player audio::-webkit-media-controls-timeline-container {
+  background: transparent;
+}
+
+/* Memos 文件链接样式 */
+.memo-file-link {
+  transition: all 0.2s ease;
+}
+
+.memo-file-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Memos 外链嵌入卡片样式 */
+.memo-embed-card {
+  transition: all 0.2s ease;
+}
+
+.memo-embed-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Memos 位置标记样式 */
+.memo-card .fa-location-dot {
+  color: var(--accent);
+}

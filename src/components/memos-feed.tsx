@@ -1,6 +1,10 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import LightboxImage from "@/components/lightbox-image";
 import type { Memo } from "@/lib/memos";
 
@@ -18,14 +22,66 @@ function isVideo(type: string): boolean {
   return type.startsWith("video/");
 }
 
+function isAudio(type: string): boolean {
+  return type.startsWith("audio/");
+}
+
+function getFileIcon(type: string): string {
+  if (type.includes("pdf")) return "fa-file-pdf";
+  if (type.includes("word") || type.includes("document")) return "fa-file-word";
+  if (type.includes("excel") || type.includes("spreadsheet")) return "fa-file-excel";
+  if (type.includes("zip") || type.includes("compressed") || type.includes("archive")) return "fa-file-zipper";
+  if (type.includes("markdown") || type.includes("md")) return "fa-file-lines";
+  if (type.includes("json")) return "fa-file-code";
+  if (type.includes("image")) return "fa-file-image";
+  if (type.includes("video")) return "fa-file-video";
+  if (type.includes("audio")) return "fa-file-audio";
+  return "fa-file";
+}
+
+function formatDateFallback(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mi = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+}
+
 function formatAbsoluteDate(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  const MMM = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-  ][d.getMonth()];
-  return `${MMM} ${`0${d.getDate()}`.slice(-2)}, ${d.getFullYear()} ${`0${d.getHours()}`.slice(-2)}:${`0${d.getMinutes()}`.slice(-2)}`;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Shanghai",
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(d);
+    const get = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((p) => p.type === type)?.value ?? "";
+    return `${get("month")} ${get("day")}, ${get("year")} ${get("hour")}:${get("minute")}`;
+  } catch {
+    return formatDateFallback(iso);
+  }
+}
+
+function ClientTime({ iso }: { iso: string }) {
+  const [display, setDisplay] = useState(() => formatDateFallback(iso));
+  useEffect(() => {
+    setDisplay(formatAbsoluteDate(iso));
+  }, [iso]);
+  return (
+    <time className="text-sub" dateTime={iso} suppressHydrationWarning>
+      {display}
+    </time>
+  );
 }
 
 function extractImages(content: string): { images: string[]; clean: string } {
@@ -41,36 +97,131 @@ function extractImages(content: string): { images: string[]; clean: string } {
   return { images, clean };
 }
 
-function KotobaImageGrid({ images }: { images: string[] }) {
-  if (images.length === 0) return null;
+function ImageGrid({ urls, label }: { urls: string[]; label?: string }) {
+  if (urls.length === 0) return null;
 
-  if (images.length === 1) {
+  if (urls.length === 1) {
     return (
-      <div className="mt-3">
+      <div className="mt-3 memo-img-wrap aspect-16-9">
         <LightboxImage
-          src={images[0]}
-          alt=""
+          src={urls[0]}
+          alt={label ?? ""}
           loading="lazy"
-          className="max-h-96 w-full cursor-pointer rounded-lg object-cover"
+          className="cursor-pointer"
         />
       </div>
     );
   }
 
-  const gridCols = images.length === 2 ? "grid-cols-2" : "grid-cols-3";
+  const gridCols = urls.length === 2 ? "grid-cols-2" : "grid-cols-3";
 
   return (
-    <div className={`mt-3 grid ${gridCols} gap-1`}>
-      {images.map((src, i) => (
-        <LightboxImage
-          key={i}
-          src={src}
-          alt=""
-          loading="lazy"
-          className="h-full w-full cursor-pointer rounded-lg object-cover"
-          wrapperClassName="block aspect-square overflow-hidden"
-        />
+    <div className={`mt-3 grid ${gridCols} gap-1.5`}>
+      {urls.map((src, i) => (
+        <div key={i} className="memo-img-wrap aspect-square">
+          <LightboxImage
+            src={src}
+            alt={label ?? ""}
+            loading="lazy"
+            className="cursor-pointer"
+          />
+        </div>
       ))}
+    </div>
+  );
+}
+
+function AudioPlayer({ src, filename }: { src: string; filename: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState("0:00");
+  const [duration, setDuration] = useState("0:00");
+
+  const formatTime = (sec: number) => {
+    if (isNaN(sec)) return "0:00";
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${String(s).padStart(2, "0")}`;
+  };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onTimeUpdate = () => {
+      setProgress((audio.currentTime / audio.duration) * 100 || 0);
+      setCurrentTime(formatTime(audio.currentTime));
+    };
+    const onLoadedMetadata = () => {
+      setDuration(formatTime(audio.duration));
+    };
+    const onEnded = () => setPlaying(false);
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("ended", onEnded);
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("ended", onEnded);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+    } else {
+      audio.play();
+    }
+    setPlaying(!playing);
+  };
+
+  return (
+    <div className="mt-3 memo-audio-player">
+      <div className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3">
+        <button
+          type="button"
+          onClick={togglePlay}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white transition-colors hover:bg-accent/80"
+        >
+          <i className={`fa-solid ${playing ? "fa-pause" : "fa-play"} text-sm ml-0.5`}></i>
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-ink">{filename}</p>
+          <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted">
+            <span className="shrink-0 tabular-nums">{currentTime}</span>
+            <div className="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-line"
+              onClick={(e) => {
+                const audio = audioRef.current;
+                if (!audio || !audio.duration) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = (e.clientX - rect.left) / rect.width;
+                audio.currentTime = ratio * audio.duration;
+              }}
+            >
+              <div
+                className="absolute inset-y-0 left-0 bg-accent rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="shrink-0 tabular-nums">{duration}</span>
+          </div>
+        </div>
+        <a
+          href={src}
+          download={filename}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent transition-colors hover:bg-accent hover:text-white"
+          title="下载"
+        >
+          <i className="fa-solid fa-download text-sm"></i>
+        </a>
+      </div>
+      <audio ref={audioRef} preload="metadata" className="hidden">
+        <source src={src} />
+      </audio>
     </div>
   );
 }
@@ -78,68 +229,182 @@ function KotobaImageGrid({ images }: { images: string[] }) {
 function MediaGrid({ attachments }: { attachments: Memo["attachments"] }) {
   const images = attachments.filter((a) => isImage(a.type));
   const videos = attachments.filter((a) => isVideo(a.type));
-  const files = attachments.filter((a) => !isImage(a.type) && !isVideo(a.type));
+  const audios = attachments.filter((a) => isAudio(a.type));
+  const files = attachments.filter(
+    (a) => !isImage(a.type) && !isVideo(a.type) && !isAudio(a.type),
+  );
 
-  if (videos.length === 0 && files.length === 0 && images.length === 0) {
+  if (images.length === 0 && videos.length === 0 && audios.length === 0 && files.length === 0) {
     return null;
   }
 
   return (
     <>
-      {images.length === 1 && (
-        <div className="mt-3">
-          <LightboxImage
-            src={images[0].externalLink}
-            alt={images[0].filename}
-            loading="lazy"
-            className="max-h-96 w-full cursor-pointer rounded-lg object-cover"
+      <ImageGrid urls={images.map((a) => a.externalLink)} />
+      {videos.map((v) => (
+        <div key={v.name} className="mt-3 memo-img-wrap aspect-16-9 rounded-lg overflow-hidden">
+          <video
+            src={v.externalLink}
+            controls
+            preload="metadata"
+            className="w-full h-full object-contain"
           />
         </div>
-      )}
-      {images.length >= 2 && (
-        <div
-          className={`mt-3 grid ${
-            images.length === 2 ? "grid-cols-2" : "grid-cols-3"
-          } gap-1`}
-        >
-          {images.map((img) => (
-            <LightboxImage
-              key={img.name}
-              src={img.externalLink}
-              alt={img.filename}
-              loading="lazy"
-              className="h-full w-full cursor-pointer rounded-lg object-cover"
-              wrapperClassName="block aspect-square overflow-hidden"
-            />
+      ))}
+      {audios.map((a) => (
+        <AudioPlayer key={a.name} src={a.externalLink} filename={a.filename} />
+      ))}
+      {files.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {files.map((f) => (
+            <div
+              key={f.name}
+              className="memo-file-link flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 hover:border-accent/50 hover:bg-accent/5 transition-all"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                <i className={`fa-solid ${getFileIcon(f.type)} text-base`}></i>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-ink">{f.filename}</p>
+                <p className="text-xs text-muted">{formatSize(Number(f.size) || 0)}</p>
+              </div>
+              <a
+                href={f.externalLink}
+                download={f.filename}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent transition-colors hover:bg-accent hover:text-white"
+                title="下载"
+              >
+                <i className="fa-solid fa-download text-sm"></i>
+              </a>
+            </div>
           ))}
         </div>
       )}
-      {videos.map((v) => (
-        <video
-          key={v.name}
-          src={v.externalLink}
-          controls
-          preload="metadata"
-          className="mt-3 w-full rounded-lg"
-        />
-      ))}
-      <div className="mt-3 space-y-1.5">
-        {files.map((f) => (
-          <a
-            key={f.name}
-            href={f.externalLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm text-sub hover:underline"
-          >
-            <span className="truncate">{f.filename}</span>
-            <span className="shrink-0 text-xs text-muted">
-              {formatSize(Number(f.size) || 0)}
-            </span>
-          </a>
-        ))}
-      </div>
     </>
+  );
+}
+
+function detectEmbedType(url: string): { platform: string; embedUrl: string } | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace("www.", "");
+
+    // Bilibili
+    if (host.includes("bilibili.com")) {
+      const bvMatch = u.pathname.match(/\/video\/(BV[\w]+)/);
+      if (bvMatch) {
+        return {
+          platform: "bilibili",
+          embedUrl: `//player.bilibili.com/player.html?bvid=${bvMatch[1]}&autoplay=0&high_quality=1`,
+        };
+      }
+    }
+
+    // 网易云音乐
+    if (host.includes("music.163.com")) {
+      const songMatch = u.hash.match(/id=(\d+)/) || u.searchParams.get("id");
+      if (songMatch) {
+        const id = typeof songMatch === "string" ? songMatch : songMatch[1];
+        return {
+          platform: "netease",
+          embedUrl: `//music.163.com/outchain/player?type=2&id=${id}&auto=0`,
+        };
+      }
+    }
+
+    // 抖音
+    if (host.includes("douyin.com")) {
+      return { platform: "douyin", embedUrl: url };
+    }
+
+    // 豆瓣
+    if (host.includes("douban.com")) {
+      return { platform: "douban", embedUrl: url };
+    }
+  } catch {
+    // invalid URL
+  }
+  return null;
+}
+
+function EmbedCard({ url, children }: { url: string; children: React.ReactNode }) {
+  const embed = detectEmbedType(url);
+  if (!embed) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-accent underline decoration-accent/35 hover:decoration-accent"
+      >
+        {children}
+      </a>
+    );
+  }
+
+  if (embed.platform === "bilibili") {
+    return (
+      <div className="my-3 -mx-6 overflow-hidden sm:-mx-6 lg:-mx-6">
+        <iframe
+          src={embed.embedUrl}
+          className="w-full aspect-video border-0"
+          allowFullScreen={true}
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  if (embed.platform === "netease") {
+    return (
+      <div className="my-3 -mx-6 overflow-hidden sm:-mx-6 lg:-mx-6">
+        <iframe
+          src={embed.embedUrl}
+          className="w-full border-0"
+          style={{ height: 86 }}
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  // 抖音、豆瓣 - 预览卡
+  let hostName = "";
+  try {
+    hostName = new URL(url).hostname.replace("www.", "");
+  } catch {
+    hostName = url;
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="memo-embed-card my-3 flex items-center gap-3 rounded-xl border border-line p-3 hover:border-accent/50 hover:bg-accent/5 transition-all"
+    >
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+        <i className={`fa-brands fa-${embed.platform === "douyin" ? "tiktok" : "apple"} text-lg`}></i>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-ink">{children}</p>
+        <p className="text-xs text-muted">{hostName}</p>
+      </div>
+      <div className="shrink-0 text-muted">
+        <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+      </div>
+    </a>
+  );
+}
+
+function LocationMarker({ location }: { location: Memo["location"] }) {
+  if (!location?.placeholder) return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-muted" title={`${location.latitude}, ${location.longitude}`}>
+      <i className="fa-solid fa-location-dot text-[10px]"></i>
+      <span>{location.placeholder}</span>
+    </span>
   );
 }
 
@@ -158,15 +423,13 @@ export function MemosFeed({ memos }: { memos: Memo[] }) {
             key={memo.slug}
             className="mb-4 rounded-xl border border-line bg-card p-6 shadow-sm shadow-black/5 memo-card"
           >
-            <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
               {memo.pinned && (
                 <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs text-accent">
                   置顶
                 </span>
               )}
-              <time className="text-sub" dateTime={memo.date}>
-                {formatAbsoluteDate(memo.date)}
-              </time>
+              <ClientTime iso={memo.date} />
               {memo.tags.map((tag) => (
                 <Link
                   key={tag}
@@ -184,25 +447,69 @@ export function MemosFeed({ memos }: { memos: Memo[] }) {
               <div className="text-[15px] leading-relaxed [&_p]:my-3 [&_p:last-child]:mb-0" data-memo-content>
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
                   components={{
-                    a: ({ href, children }) => (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-4 decoration-ink/35 hover:decoration-ink"
-                      >
-                        {children}
-                      </a>
-                    ),
+                    a: ({ href, children }) => {
+                      if (href && /^https?:\/\//.test(href)) {
+                        return <EmbedCard url={href}>{children}</EmbedCard>;
+                      }
+                      return (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent underline decoration-accent/35 hover:decoration-accent"
+                        >
+                          {children}
+                        </a>
+                      );
+                    },
                     img: ({ src, alt }) => (
-                      <LightboxImage
-                        src={typeof src === "string" ? src : ""}
-                        alt={alt ?? ""}
-                        loading="lazy"
-                        className="my-2 cursor-pointer rounded-lg"
-                      />
+                      <div className="my-2 memo-img-wrap aspect-16-9">
+                        <LightboxImage
+                          src={typeof src === "string" ? src : ""}
+                          alt={alt ?? ""}
+                          loading="lazy"
+                          className="cursor-pointer"
+                        />
+                      </div>
                     ),
+                    iframe: (props) => {
+                      const {
+                        allowFullScreen,
+                        src: rawSrc,
+                        width,
+                        height,
+                        className,
+                        node,
+                        ...rest
+                      } = props;
+                      const srcStr = typeof rawSrc === "string" ? rawSrc : "";
+                      const src = srcStr.startsWith("//") ? `https:${srcStr}` : srcStr;
+                      const isMusic = src.includes("music.163.com/outchain/player");
+                      const isBili = src.includes("player.bilibili.com");
+                      const hasFullscreen =
+                        allowFullScreen === true ||
+                        (allowFullScreen as unknown as string) === "" ||
+                        (allowFullScreen as unknown as string) === "true";
+                      return (
+                        <iframe
+                          {...rest}
+                          src={isMusic ? src.replace(/([?&])auto=1/, "$1auto=0") : src}
+                          allowFullScreen={hasFullscreen}
+                          frameBorder="0"
+                          className={
+                            isBili
+                              ? "my-3 w-full aspect-video border-0 rounded-lg bg-black/5"
+                              : isMusic
+                                ? "my-3 w-full border-0 rounded-lg"
+                                : (className as string) ?? ""
+                          }
+                          width={isMusic ? "100%" : width}
+                          height={isMusic ? "86" : height}
+                        />
+                      );
+                    },
                     code({ className, children }) {
                       const isBlock = /language-[\w+-]+/.test(className ?? "");
                       if (!isBlock) {
@@ -213,9 +520,7 @@ export function MemosFeed({ memos }: { memos: Memo[] }) {
                         );
                       }
                       return (
-                        <code
-                          className="block overflow-x-auto rounded-lg border border-line bg-card p-4 font-mono text-[0.85em] leading-relaxed"
-                        >
+                        <code className="block overflow-x-auto rounded-lg border border-line bg-card p-4 font-mono text-[0.85em] leading-relaxed">
                           {children}
                         </code>
                       );
@@ -227,10 +532,16 @@ export function MemosFeed({ memos }: { memos: Memo[] }) {
               </div>
             )}
 
-            {inlineImages.length > 0 && <KotobaImageGrid images={inlineImages} />}
+            {inlineImages.length > 0 && <ImageGrid urls={inlineImages} />}
 
             {memo.attachments?.length > 0 && (
               <MediaGrid attachments={memo.attachments} />
+            )}
+
+            {memo.location && (
+              <div className="mt-3 pt-3 border-t border-line/40">
+                <LocationMarker location={memo.location} />
+              </div>
             )}
           </article>
         );

@@ -20,6 +20,12 @@ interface MemoAttachment {
   size: string;
 }
 
+interface MemoLocation {
+  placeholder: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface Memo {
   name: string;
   content: string;
@@ -29,6 +35,7 @@ interface Memo {
   state: string;
   visibility: string;
   attachments: MemoAttachment[];
+  location?: MemoLocation;
 }
 
 const esc = (value: string): string => value.replace(/"/g, '\\"');
@@ -42,12 +49,13 @@ function buildFrontmatter(memo: Memo): string {
     `tags: ${JSON.stringify(memo.tags)}`,
     `pinned: ${memo.pinned}`,
     `attachments: ${JSON.stringify(memo.attachments)}`,
+    memo.location ? `location: ${JSON.stringify(memo.location)}` : "",
     "---",
     "",
     memo.content.trimEnd(),
     "",
   ];
-  return lines.join("\n");
+  return lines.filter((l) => l !== "").join("\n");
 }
 
 async function fetchAll(): Promise<Memo[]> {

@@ -12,6 +12,12 @@ export interface MemoAttachment {
   size: string;
 }
 
+export interface MemoLocation {
+  placeholder: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface Memo {
   slug: string;
   content: string;
@@ -19,6 +25,7 @@ export interface Memo {
   tags: string[];
   pinned: boolean;
   attachments: MemoAttachment[];
+  location?: MemoLocation;
 }
 
 function normalizeMemo(data: Record<string, unknown>): Omit<Memo, "content"> {
@@ -35,6 +42,29 @@ function normalizeMemo(data: Record<string, unknown>): Omit<Memo, "content"> {
             typeof item === "object" && item !== null && "externalLink" in item,
         )
       : [];
+  const asLocation = (value: unknown): MemoLocation | undefined => {
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      "placeholder" in value &&
+      "latitude" in value &&
+      "longitude" in value
+    ) {
+      const loc = value as Record<string, unknown>;
+      if (
+        typeof loc.placeholder === "string" &&
+        typeof loc.latitude === "number" &&
+        typeof loc.longitude === "number"
+      ) {
+        return {
+          placeholder: loc.placeholder,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+        };
+      }
+    }
+    return undefined;
+  };
 
   return {
     slug: asString(data.slug),
@@ -42,6 +72,7 @@ function normalizeMemo(data: Record<string, unknown>): Omit<Memo, "content"> {
     tags: asStringArray(data.tags),
     pinned: Boolean(data.pinned),
     attachments: asAttachments(data.attachments),
+    location: asLocation(data.location),
   };
 }
 
