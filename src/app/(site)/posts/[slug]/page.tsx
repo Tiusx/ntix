@@ -9,6 +9,21 @@ import { SITE_CONFIG } from "@/site.config";
 
 export const dynamicParams = false;
 
+// 文章日期统一按中国时区显示（构建时由 Intl 固定 Asia/Shanghai，无客户端差异）
+function formatChinaDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 export function generateStaticParams() {
   const raw = getAllPosts().map((post) => ({ slug: post.slug }));
   if (process.env.NODE_ENV === "development") {
@@ -120,7 +135,7 @@ export default async function PostPage({
             {meta.title}
           </h1>
           <p className="mt-4 text-sm text-muted">
-            <time dateTime={meta.date}>{meta.date}</time>
+            <time dateTime={meta.date}>{formatChinaDate(meta.date)}</time>
             {meta.category ? (
               <span>
                 {" "}

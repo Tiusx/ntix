@@ -4,10 +4,10 @@ slug: "memos-anonymous-public-access"
 date: "2026-09-12"
 category: "开发"
 tags: ["Memos"]
-summary: ""
+summary: "- 新版本 Memos（0.30+）默认私密模式，需通过设置 MEMOS_INSTANCE_URL 为完整外部 URL（如 https://memos.tius.cn）才能开启匿名公开访问。\n- 部署时使用 Docker，确保挂载 ~/.memos/ 目录并在重建前备份 memos_prod.db，以便快速回滚。\n- 公开模式下的 API /api/v1/memos 免鉴权，可分页获取 state === \"NORMAL\" 且 visibility === \"PUBLIC\" 的 memo，用于博客同步。\n- 如需通过 Cloudflare Tunnel 暴露服务，使用 cloudflared 运行隧道并确保后端地址为 http://localhost:5230（不要写成 https）。\n- 核心步骤：设置 MEMOS_INSTANCE_URL 退出私密模式，确保 memo 为公开状态，随后即可进行翻页、快照和同步。"
 status: "Published"
 page_id: "3dd16576-aec8-81ef-bbb2-f49318878688"
-last_edited_time: "2026-09-16T17:54:00.000Z"
+last_edited_time: "2026-09-16T19:05:00.000Z"
 ---
 
 
@@ -85,5 +85,5 @@ ExecStart=/usr/bin/docker run --rm --network host --name cloudflared \
 ## 小结
 
 
-让 Memos 匿名公开访问，核心就一件事：**设置** **`MEMOS_INSTANCE_URL`** **退出私密模式**，然后确保 memo 是 `PUBLIC`、实例允许公开。剩下的翻页、快照、同步都是博客侧的活。
+让 Memos 匿名公开访问，核心就一件事：**设置** **`MEMOS_INSTANCE_URL`** **退出私密模式**，然后确保 memo 是 `PUBLIC`、实例允许公开。剩下的翻页、快照、同步都是博客侧的活。.
 

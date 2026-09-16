@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { optimizeImage } from "./image-optimizer";
 import { loadEnv } from "./utils";
 
 /**
@@ -80,27 +81,6 @@ export const isR2Url = (url: string): boolean => {
   }
 };
 
-const CONTENT_TYPE_MAP: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  gif: "image/gif",
-  webp: "image/webp",
-  svg: "image/svg+xml",
-  bmp: "image/bmp",
-  ico: "image/x-icon",
-};
-
-/** 根据扩展名推断 Content-Type，优先使用下载响应的 content-type。 */
-export const getContentType = (fileName: string, fallback?: string): string => {
-  if (fallback) {
-    const base = fallback.split(";")[0].trim();
-    if (base.startsWith("image/")) return base;
-  }
-  const ext = fileName.split(".").pop()?.toLowerCase();
-  return CONTENT_TYPE_MAP[ext || ""] || "application/octet-stream";
-};
-
 /** 判断 S3/R2 错误是否为「对象不存在」（HEAD 幂等检查用）。 */
 export const is404 = (error: unknown): boolean => {
   if (typeof error !== "object" || error === null) return false;
@@ -160,8 +140,11 @@ export class R2ImageUploader {
       throw new Error(`Failed to download image: ${res.status} ${res.statusText}`);
     }
 
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const ext = extractExtension(url);
+    const rawBuffer = Buffer.from(await res.arrayBuffer());
+    const rawExt = extractExtension(url);
+
+    // 压缩 + 剥离元信息（统一转 WebP，GIF/SVG/AVIF 原样保留）
+    const { buffer, ext, contentType } = await optimizeImage(rawBuffer, rawExt);
     const key = composeNewImageKey(label, pageId, buffer, ext);
     const publicUrl = `${this.publicDomain}/${key}`;
 
@@ -171,8 +154,12 @@ export class R2ImageUploader {
       return { url: publicUrl, fileName: key, size: head.size ?? 0 };
     }
 
-    const contentType = getContentType(key, res.headers.get("content-type") || undefined);
-    console.log(`📤 Uploading to R2: ${key} (${(buffer.length / 1024).toFixed(2)}KB)`);
+    console.log(
+      `📤 Uploading to R2: ${key} (${(rawBuffer.length / 1024).toFixed(2)}KB -> ${(buffer.length / 1024).toFixed(2)}KB)` +
+        (buffer.length < rawBuffer.length
+          ? `, saved ${((1 - buffer.length / rawBuffer.length) * 100).toFixed(1)}%`
+          : ""),
+    );
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,

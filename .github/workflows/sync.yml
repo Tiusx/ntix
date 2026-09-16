@@ -23,6 +23,10 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # secrets 不能直接在 step 的 if 条件中读取；先提为 job 级 env，
+    # step 的 if 走 env.NOTION_API_SECRET 判断是否配置
+    env:
+      NOTION_API_SECRET: ${{ secrets.NOTION_API_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,9 +48,8 @@ jobs:
         run: pnpm sync:memos:strict
 
       - name: Sync posts from Notion
-        if: ${{ secrets.NOTION_API_SECRET != '' }}
+        if: env.NOTION_API_SECRET != ''
         env:
-          NOTION_API_SECRET: ${{ secrets.NOTION_API_SECRET }}
           NOTION_POSTS_DATABASE_ID: ${{ secrets.NOTION_POSTS_DATABASE_ID }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
