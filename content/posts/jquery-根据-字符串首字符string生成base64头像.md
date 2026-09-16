@@ -3,13 +3,19 @@ title: "Jquery 根据 字符串首字符（string）生成Base64头像"
 slug: "jquery-根据-字符串首字符string生成base64头像"
 date: "2021-04-03"
 category: "开发"
-status: "Published"
-tags: ["Jquery","Js","canvas","string"]
+tags: ["Jquery", "Js", "canvas", "string"]
 summary: ""
+status: "Published"
+page_id: "3dd16576-aec8-81af-b08a-fe09aa402cce"
+last_edited_time: "2026-09-16T17:55:00.000Z"
 ---
 
+> 
+>
+> ### 项目引用记录
+>
+>
 
-> #### 项目引用记录
 ```javascript
 function getImage(name){
 	
@@ -49,11 +55,13 @@ function getImage(name){
       context.fillText(nick, fontSize, fontSize);
       return canvas.toDataURL("image/png");
 }
-
 ```
 
+
 需要引用头像的地方直接引用
+
 
 ```javascript
 getImage("小石头")
 ```
+

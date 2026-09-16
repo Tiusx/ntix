@@ -1,6 +1,9 @@
+import { BusuanziCounter } from "./busuanzi";
+
 export function Footer() {
   return (
     <footer className="content py-8 border-t border-line text-center text-sm text-muted">
+      <BusuanziCounter />
       <p className="mb-1">
         © 2018 - {new Date().getFullYear()} Tiusx ·
         <span id="busuanzi_container_site_pv" style={{ display: "inline" }}>

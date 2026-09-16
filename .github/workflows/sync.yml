@@ -5,7 +5,7 @@
 #    （构建时会自动执行 prebuild 同步 memos）
 # 3. 可选：在 repository variables 添加 MEMOS_API 覆盖 memos API 地址（默认用 memos.tius.cn）
 
-name: Sync Memos
+name: Sync Memos and Posts
 
 on:
   schedule:
@@ -43,15 +43,27 @@ jobs:
           MEMOS_API: ${{ vars.MEMOS_API || 'https://memos.tius.cn/api/v1/memos' }}
         run: pnpm sync:memos:strict
 
+      - name: Sync posts from Notion
+        if: ${{ secrets.NOTION_API_SECRET != '' }}
+        env:
+          NOTION_API_SECRET: ${{ secrets.NOTION_API_SECRET }}
+          NOTION_POSTS_DATABASE_ID: ${{ secrets.NOTION_POSTS_DATABASE_ID }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'cf-imgbed' }}
+          R2_PUBLIC_DOMAIN: ${{ vars.R2_PUBLIC_DOMAIN || 'https://r2.tius.cn' }}
+        run: pnpm sync:posts:strict
+
       - name: Commit and push generated content
         run: |
           git checkout -B main
           git config user.name "ntix-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add content
+          git add content .fetch-state.json
           if git diff --cached --quiet; then
             echo "No content changes; skip commit."
           else
-            git commit -m "chore(content): sync memos"
+            git commit -m "chore(content): sync memos and posts"
             git push origin main
           fi

@@ -3,30 +3,44 @@ title: "Windows10 docker安装PHP环境swoole扩展"
 slug: "windows10-docker安装php环境swoole扩展-1"
 date: "2021-07-07"
 category: "开发"
-status: "Published"
-tags: ["技术","Docker","Swoole"]
+tags: ["技术", "Docker", "Swoole"]
 summary: "Windows10 docker安装PHP环境swoole扩展"
+status: "Published"
+page_id: "3dd16576-aec8-8152-8bcc-d684736e1ed0"
+last_edited_time: "2026-09-16T17:52:00.000Z"
 ---
 
->  ###### 概述
+> 
+>
+> ### 概述
+>
+>
 
 本教程安装版本 `php7.4` `swoole4.6.4`
 步骤：
+
 1. 安装php镜像
 2. 创建php容器
 3. 安装`gcc` `g++`编译环境
 4. 安装`swoole`扩展
 5. 配置`php.ini`
 6. 重启容器
-
->  ###### `docker` 安装`PHP`
+> 
+>
+> ### `docker` 安装`PHP`
+>
+>
 
 ```shell
 # 首先docker下载php7.4的镜像
 docker pull php:7.4
 ```
 
->  ###### 创建容器
+> 
+>
+> ### 创建容器
+>
+>
 
 ```shell
 # 创建php7.4的容器
@@ -43,45 +57,72 @@ php -m
 #[Zend Modules]
 ```
 
->  ###### 安装`Swoole`扩展
+> 
+>
+> ### 安装`Swoole`扩展
+>
+>
 
 进入容器后，查看对应版本及扩展后，我们可以看到并没有安装`swoole`
 现在安装`swoole`的扩展
 
->  ###### 更新镜像源
+> 
+>
+> ### 更新镜像源
+>
+>
 
-```
+```plain text
 apt-update ## 等待更新完成
 ```
 
->  ###### 安装必要的编译环境`gcc` `g++`
+> 
+>
+> ### 安装必要的编译环境`gcc` `g++`
+>
+>
 
-```
+```plain text
 apt install -y gcc g++ autoconf libtool make
 ```
 
->  ###### 使用`pecl`安装`swoole`扩展
+> 
+>
+> ### 使用`pecl`安装`swoole`扩展
+>
+>
 
 如果报错找不到`curl`
 根据报错提示使用`apt-get install libcurl4-openssl-dev`安装后
 再使用`pecl install swoole`安装`swoole`
 
-```
+
+```plain text
 pecl install swoole
 ```
 
->  ###### 修改配置`php.ini`
+> 
+>
+> ### 修改配置`php.ini`
+>
+>
 
 使用`php --ini` 找到`php.ini`配置文件
 写入扩展`extension=swoole`
 
-```
+
+```plain text
 extension=swoole
 ```
 
->  ###### 没有`php.ini`则修改`docker-php-ext-sodium.ini`
+> 
+>
+> ### 没有`php.ini`则修改`docker-php-ext-sodium.ini`
+>
+>
 
 使用`php --ini` 或者 使用`whereis`查看`php`安装目录
+
 
 ```shell
 php --ini
@@ -96,6 +137,7 @@ php --ini
  Additional .ini files parsed:      `/usr/local/etc/php/conf.d/docker-php-ext-sodium.ini`
 ```
 
+
 ```shell
 whereis php
 
@@ -108,24 +150,35 @@ php:
 /usr/src/php/php.ini-production
 ```
 
+
 默认情况下是在`/usr/local/etc/php/conf.d/`目录下
 `/usr/local/etc/php/conf.d/docker-php-ext-sodium.ini`
 写入`extension=swoole`
 
-![image.png](https://rimg.tius.cn/images/d7e181bf5abd4fd3b0d16b0f47f3f1111cc2885f.png#blurhash=L16t%3An.N7voO%7E8teF%3FV%5BI%5BV%7BwMjY&width=251&height=87)
 
->  ###### 重启容器
+![image](https://rimg.tius.cn/images/d7e181bf5abd4fd3b0d16b0f47f3f1111cc2885f.png#blurhash=L16t%3An.N7voO%7E8teF%3FV%5BI%5BV%7BwMjY&width=251&height=87)
+
+> 
+>
+> ### 重启容器
+>
+>
 
 ```shell
 # 重启容器
 docker restart TiusPHP7.4
 ```
 
-> ###### 检查`swoole`扩展
+> 
+>
+> ### 检查`swoole`扩展
+>
+>
 
 检查`swoole`是否安装成功
-```shell
 
+
+```shell
 # 进入容器
 docker exec -it TiusPHP7.4 bash
 # 检查扩展
