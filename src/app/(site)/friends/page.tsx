@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { FRIENDS } from "@/data/friends";
-import { WalineComments } from "@/components/waline-comments";
+import { GiscusComments } from "@/components/giscus-comments";
 
 export const metadata: Metadata = {
   title: "友链",
@@ -92,7 +92,7 @@ export default function FriendsPage() {
         </div>
       </section>
 
-      <WalineComments path="/friends/" />
+      <GiscusComments />
     </main>
   );
 }

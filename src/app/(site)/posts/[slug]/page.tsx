@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getAllPosts, getPostMeta } from "@/lib/posts";
 import { BackToPostsLink } from "@/components/back-to-posts-link";
 import LightboxImage from "@/components/lightbox-image";
-import { WalineComments } from "@/components/waline-comments";
+import { GiscusComments } from "@/components/giscus-comments";
 import { SITE_CONFIG } from "@/site.config";
 
 export const dynamicParams = false;
@@ -177,7 +177,7 @@ export default async function PostPage({
           <Post />
         </div>
 
-        <WalineComments path={`/posts/${name}/`} />
+        <GiscusComments />
       </article>
     </main>
   );
