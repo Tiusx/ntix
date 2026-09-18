@@ -12,7 +12,7 @@ export default function sitemap() {
 
   const staticRoutes = [
     "",
-    "/about/",
+    "/pages/about/",
     "/archive/",
     "/blog/",
     "/categories/",

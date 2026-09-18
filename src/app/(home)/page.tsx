@@ -3,7 +3,7 @@ import { SITE_CONFIG } from "@/site.config";
 import { Footer } from "@/components/footer";
 
 const SECTIONS: [string, string][] = [
-  ["/about/", "@Me"],
+  ["/pages/about/", "@Me"],
 
   ["/blog/", "博客"],
   // ["/archive/", "项目"],
