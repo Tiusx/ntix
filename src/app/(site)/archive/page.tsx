@@ -70,18 +70,22 @@ export default function ArchivePage() {
                 <div className="mt-4">
                   {[...byMonth.entries()].map(([month, arr]) => (
                     <div key={month} className="mb-3">
-                      <h3 className="mb-1.5 text-sm font-medium tracking-wide text-muted">
+                      <h3 className="mb-2 text-sm font-medium tracking-wide text-muted">
                         {month}
                       </h3>
-                      <div>
+                      <div className="space-y-1">
                         {arr.map((item) => (
                           <Link
                             key={item.slug}
                             href={`/posts/${item.slug}/`}
-                            className="group relative flex items-baseline gap-4 py-1.5"
+                            className="group -mx-2 flex items-baseline gap-x-3 rounded-md px-2 py-2 transition-colors hover:bg-card"
                           >
-                            <span className="absolute -left-[31px] top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-line transition-colors group-hover:bg-ink" />
-                            <span className="min-w-0 truncate font-serif text-base tracking-wide text-ink underline-offset-4 transition-colors group-hover:underline group-hover:decoration-accent">
+                            <span className="w-11 shrink-0 text-right font-mono text-xs tabular-nums text-muted">
+                              {String(item.date.getMonth() + 1).padStart(2, "0")}
+                              {"/"}
+                              {String(item.date.getDate()).padStart(2, "0")}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate font-serif text-base tracking-wide text-ink underline-offset-4 transition-colors group-hover:underline group-hover:decoration-accent">
                               {item.title}
                             </span>
                           </Link>

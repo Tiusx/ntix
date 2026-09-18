@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SITE_CONFIG } from "@/site.config";
 import { LightboxProvider } from "@/components/lightbox-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BackToTop } from "@/components/back-to-top";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -57,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Noto+Serif+SC:wght@400;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Press+Start+2P&display=swap"
           rel="stylesheet"
         />
         <link
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ThemeToggle />
+        <BackToTop />
         <LightboxProvider>{children}</LightboxProvider>
       </body>
     </html>

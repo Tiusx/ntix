@@ -5,6 +5,7 @@ const LINKS: [string, string][] = [
   ["文章", "/blog/"],
   ["栏目", "/columns/"],
   ["归档", "/archive/"],
+  ["搜索", "/search/"],
 ];
 
 export function Header() {
@@ -12,7 +13,9 @@ export function Header() {
     <header className="content flex items-center justify-between py-6">
       <Link
         href="/"
-        className="text-base font-semibold tracking-tight text-ink"
+        className="logo-glitch"
+        data-text={SITE_CONFIG.title}
+        aria-label={SITE_CONFIG.title}
       >
         {SITE_CONFIG.title}
       </Link>

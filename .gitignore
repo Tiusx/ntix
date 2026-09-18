@@ -37,6 +37,9 @@ yarn-error.log*
 # temp
 .tmp-memos.json
 
+# 构建产物：prebuild 自动生成
+/public/search-index.json
+
 # vercel
 .vercel
 

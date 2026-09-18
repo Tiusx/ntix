@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-export function BackButton({ label = "← 返回" }: { label?: string }) {
+export function BackButton({ label = "← Back" }: { label?: string }) {
   const router = useRouter();
 
   return (
