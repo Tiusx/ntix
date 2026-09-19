@@ -27,6 +27,7 @@ jobs:
     # step 的 if 走 env.NOTION_API_SECRET 判断是否配置
     env:
       NOTION_API_SECRET: ${{ secrets.NOTION_API_SECRET }}
+      INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -87,3 +88,9 @@ jobs:
             git commit -m "chore(content): sync memos and posts"
             git push origin main
           fi
+
+      - name: Submit IndexNow URLs (Bing/Google priority indexing)
+        if: env.INDEXNOW_KEY != ''
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://tius.cn' }}
+        run: pnpm submit:indexnow

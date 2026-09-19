@@ -19,6 +19,7 @@
     "sync:posts:strict": "tsx scripts/notion/fetch-posts.ts --strict",
     "sync:posts:full": "tsx scripts/notion/fetch-posts.ts --full-sync",
     "sync:posts:full:strict": "tsx scripts/notion/fetch-posts.ts --full-sync --strict",
+    "submit:indexnow": "tsx scripts/submit-indexnow.ts",
     "migrate:notion": "tsx scripts/notion/migrate-to-notion.ts"
   },
   "dependencies": {
