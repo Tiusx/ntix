@@ -31,9 +31,8 @@ function buildUrlList(): string[] {
   const postUrls = fs.existsSync(POSTS_DIR)
     ? fs
         .readdirSync(POSTS_DIR)
-        .filter((file) => file.endsWith(".md"))
+        .filter((file) => file.endsWith(".md") && file.startsWith("_") === false)
         .map((file) => file.replace(/\.md$/, ""))
-        .filter((slug) => slug !== "_placeholder")
         .map((slug) => `${base}/posts/${encodeURIComponent(slug)}/`)
     : [];
 
@@ -53,7 +52,7 @@ async function submit(urlList: string[]): Promise<void> {
   }
 
   const host = new URL(urlList[0]).hostname;
-  const keyLocation = `https://${host}/.well-known/indexnow-key-${key}.txt`;
+  const keyLocation = `https://${host}/${key}.txt`;
 
   const body = {
     host,
