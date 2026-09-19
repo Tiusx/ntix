@@ -24,6 +24,13 @@ function formatChinaDate(iso: string): string {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
+function formatShortDate(iso: string): string {
+  const parts = formatChinaDate(iso).split("-");
+  if (parts.length !== 3) return iso;
+  const [, m, d] = parts;
+  return `${+m}.${+d}`;
+}
+
 export function generateStaticParams() {
   const raw = getAllPosts().map((post) => ({ slug: post.slug }));
   if (process.env.NODE_ENV === "development") {
@@ -93,6 +100,13 @@ export default async function PostPage({
   const { default: Post } = await import(`@content/posts/${name}.md`);
   const url = `${SITE_CONFIG.siteUrl}/posts/${meta.slug}/`;
   const image = meta.cover || `${SITE_CONFIG.siteUrl}/avatar.jpg`;
+
+  const allPosts = getAllPosts();
+  const currentIndex = allPosts.findIndex((post) => post.slug === meta.slug);
+  const related = allPosts.slice(
+    Math.max(0, currentIndex - 2),
+    currentIndex + 3
+  ).filter((post) => post.slug !== meta.slug);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -175,6 +189,32 @@ export default async function PostPage({
 
         <div className="prose mx-auto mt-10 max-w-[40rem]">
           <Post />
+        </div>
+
+        <div className="mx-auto mt-12 max-w-[40rem]">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
+            其他文章
+          </h2>
+          <ul className="divide-y divide-dashed divide-line/60">
+            {related.map((post) => (
+              <li key={post.slug}>
+                <Link
+                  href={`/posts/${post.slug}/`}
+                  className="group -mx-2 flex items-center gap-2 rounded-lg px-2 py-2.5 transition-colors hover:bg-card active:bg-card sm:gap-3 sm:py-2"
+                >
+                  <span className="min-w-0 flex-1 truncate text-sm text-muted transition-colors group-hover:text-accent active:text-accent">
+                    {post.meta.title}
+                  </span>
+                  <time
+                    dateTime={post.meta.date}
+                    className="shrink-0 font-mono text-[0.7rem] tabular-nums text-sub sm:text-xs"
+                  >
+                    {formatShortDate(post.meta.date)}
+                  </time>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <GiscusComments />
