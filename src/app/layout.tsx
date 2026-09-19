@@ -51,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang={SITE_CONFIG.lang} data-theme={SITE_CONFIG.theme}>
       <head>
+        <meta name="baidu-site-verification" content="codeva-HJxCyZSxvz" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
