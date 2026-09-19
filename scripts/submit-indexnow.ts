@@ -52,7 +52,7 @@ async function submit(urlList: string[]): Promise<void> {
   }
 
   const host = new URL(urlList[0]).hostname;
-  const keyLocation = `https://${host}/${key}.txt`;
+  const keyLocation = `https://${host}/indexnow-key-${key}.txt`;
 
   const body = {
     host,
