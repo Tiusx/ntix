@@ -47,8 +47,9 @@ jobs:
         id: detect
         run: |
           hour=$(date -u +%H)
-          # 北京时间 00:00 (UTC 16:00) 和 12:00 (UTC 04:00) 跑全量清理
-          if [ "$hour" = "16" ] || [ "$hour" = "04" ]; then
+          # 手动触发（workflow_dispatch）一律跑全量清理；
+          # 定时任务仅在 北京时间 00:00 (UTC 16:00) 和 12:00 (UTC 04:00) 跑全量
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$hour" = "16" ] || [ "$hour" = "04" ]; then
             echo "full_sync=true" >> "$GITHUB_OUTPUT"
           else
             echo "full_sync=false" >> "$GITHUB_OUTPUT"
