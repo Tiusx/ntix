@@ -1,6 +1,19 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { SITE_CONFIG } from "@/site.config";
 import { Footer } from "@/components/footer";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "zh_CN",
+    siteName: SITE_CONFIG.title,
+    title: SITE_CONFIG.title,
+    description: SITE_CONFIG.description,
+    url: SITE_CONFIG.siteUrl,
+  },
+};
 
 const SECTIONS: [string, string][] = [
   ["/pages/about/", "@Me"],
