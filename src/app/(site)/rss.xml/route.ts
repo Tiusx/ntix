@@ -20,7 +20,7 @@ export function GET(): Response {
   const items = posts
     .map((post) => {
       const { title, date, summary, category, tags } = post.meta;
-      const link = `${SITE_CONFIG.siteUrl}/posts/${post.slug}/`;
+      const link = `${SITE_CONFIG.siteUrl}/posts/${encodeURIComponent(post.slug)}/`;
       const categories =
         (category ? [category] : []).concat(tags).map(
           (name) => `<category>${escapeXml(name)}</category>`,

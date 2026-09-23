@@ -29,7 +29,7 @@ export default function sitemap() {
   }));
 
   const postRoutes = posts.map((post) => ({
-    url: `${baseUrl}/posts/${post.slug}/`,
+    url: `${baseUrl}/posts/${encodeURIComponent(post.slug)}/`,
     lastModified: new Date(post.meta.date),
     changeFrequency: "monthly",
     priority: 0.7,

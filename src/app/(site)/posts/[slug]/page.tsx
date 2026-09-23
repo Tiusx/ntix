@@ -51,7 +51,7 @@ export async function generateMetadata({
   const meta = getPostMeta(name);
   if (!meta) return { title: "未找到" };
 
-  const url = `${SITE_CONFIG.siteUrl}/posts/${meta.slug}/`;
+  const url = `${SITE_CONFIG.siteUrl}/posts/${encodeURIComponent(meta.slug)}/`;
   const description = meta.summary || meta.title;
   const image = meta.cover || `${SITE_CONFIG.siteUrl}/avatar.jpg`;
 
@@ -98,7 +98,7 @@ export default async function PostPage({
   if (!meta) notFound();
 
   const { default: Post } = await import(`@content/posts/${name}.md`);
-  const url = `${SITE_CONFIG.siteUrl}/posts/${meta.slug}/`;
+  const url = `${SITE_CONFIG.siteUrl}/posts/${encodeURIComponent(meta.slug)}/`;
   const image = meta.cover || `${SITE_CONFIG.siteUrl}/avatar.jpg`;
 
   const allPosts = getAllPosts();
