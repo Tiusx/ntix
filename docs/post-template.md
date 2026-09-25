@@ -2,11 +2,19 @@
 title: "在这里写文章标题"
 slug: "your-post-slug-here"
 date: "2026-09-12"
+# 分类必须是 CATEGORY_META（src/lib/posts.ts）中已注册的一项：
+# 开发 / 生活 / 随笔 / 其他。未注册的分类不会出现在 /columns/ 与 sitemap 中，
+# 构建期会告警。
 category: "随笔"
 tags: ["示例标签"]
 summary: "一句话摘要，会显示在文章列表和搜索结果里。"
 cover: "https://r2.tius.cn/media/example-cover.png"
 ---
+
+# 文章模板
+
+> 日常写作请直接在 Notion 中编辑，本目录由 `scripts/notion/` 同步生成，
+> 手工改动会在下次同步时被覆盖。本模板仅用于说明 frontmatter 字段含义。
 
 ## 正文从这里开始
 
