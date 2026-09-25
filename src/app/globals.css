@@ -22,7 +22,7 @@
     --fg: #101828;
     --secondary: #475467;
     --muted: #98a2b3;
-    --accent: #4f46e5;
+    --accent: #18181b;
     --border: #e4e7ec;
   }
 }
@@ -48,7 +48,7 @@ html[data-theme="nord"] {
   --fg: #101828;
   --secondary: #475467;
   --muted: #98a2b3;
-  --accent: #4f46e5;
+  --accent: #18181b;
   --border: #e4e7ec;
 }
 
@@ -72,7 +72,7 @@ html[data-theme="flax"] {
   --fg: #292524;
   --secondary: #57534e;
   --muted: #a8a29e;
-  --accent: #0d9488;
+  --accent: #18181b;
   --border: #e7e5e4;
 }
 
