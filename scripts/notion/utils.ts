@@ -46,6 +46,9 @@ export const getMultiSelectProperty = (prop: any): string[] =>
 export const getDateProperty = (prop: any): string => prop?.date?.start || "";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const getCheckboxProperty = (prop: any): boolean => Boolean(prop?.checkbox);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getFilesProperty = (prop: any): string => {
   const files = prop?.files;
   if (!Array.isArray(files) || files.length === 0) return "";

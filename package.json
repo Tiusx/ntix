@@ -19,6 +19,11 @@
     "sync:posts:strict": "tsx scripts/notion/fetch-posts.ts --strict",
     "sync:posts:full": "tsx scripts/notion/fetch-posts.ts --full-sync",
     "sync:posts:full:strict": "tsx scripts/notion/fetch-posts.ts --full-sync --strict",
+    "sync:pages": "tsx scripts/notion/fetch-pages.ts",
+    "sync:pages:strict": "tsx scripts/notion/fetch-pages.ts --strict",
+    "sync:pages:full": "tsx scripts/notion/fetch-pages.ts --full-sync",
+    "sync:pages:full:strict": "tsx scripts/notion/fetch-pages.ts --full-sync --strict",
+    "migrate:pages": "tsx scripts/notion/migrate-pages.ts",
     "submit:indexnow": "tsx scripts/submit-indexnow.ts",
     "migrate:notion": "tsx scripts/notion/migrate-to-notion.ts"
   },

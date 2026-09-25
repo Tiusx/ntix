@@ -21,7 +21,7 @@ const SECTIONS: [string, string][] = [
   ["/blog/", "博客"],
   // ["/archive/", "项目"],
   // ["/photos/", "摄影"],
-  ["/friends/", "朋友"],
+  ["/pages/friends/", "朋友"],
   ["/memos/", "碎碎念"],
 ];
 

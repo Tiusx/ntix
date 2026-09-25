@@ -8,18 +8,21 @@ export interface PageDoc {
   slug: string;
   title: string;
   description: string;
+  comment: boolean;
   content: string;
 }
 
 function normalizeFrontmatter(data: Record<string, unknown>): {
   title: string;
   description: string;
+  comment: boolean;
 } {
   return {
     title:
       typeof data.title === "string" ? data.title : "",
     description:
       typeof data.description === "string" ? data.description : "",
+    comment: data.comment === "true" || data.comment === true,
   };
 }
 
@@ -28,6 +31,7 @@ function readPage(slug: string): PageDoc | null {
   if (!fs.existsSync(file)) return null;
   const raw = fs.readFileSync(file, "utf-8");
   const { data, content } = matter(raw);
+  if (data.status === "Draft") return null;
   return {
     slug,
     ...normalizeFrontmatter(data as Record<string, unknown>),

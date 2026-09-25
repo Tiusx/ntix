@@ -1,3 +1,14 @@
+---
+title: "关于"
+slug: "about"
+description: ""
+status: "Published"
+comment: false
+page_id: "3e616576-aec8-8181-a72d-c05788f6d461"
+last_edited_time: "2026-09-25T10:16:00.000Z"
+---
+
+
 # Me
 
 - Tius（@小石头）
@@ -13,14 +24,16 @@
 
 ## 找到我
 
-- 邮箱：hi@tius.cn
-- GitHub：https://github.com/Tiusx
+- 邮箱：[hi@tius.cn](mailto:hi@tius.cn)
+- GitHub：[https://github.com/Tiusx](https://github.com/Tiusx)
 
 或者在任一篇文章下面留言，我都会看到。
 
+
 ## 博客
 
-```timeline
+
+```plain text
 2026 · Next.js + Notion + Cloudflare Pages
 2025 · Astro + React + Cloudflare Workers 自建动态博客
 2024 · 用 Gridea 重新部署博客
@@ -33,3 +46,4 @@
 2017 · 购买阿里云服务器，用 WordPress 搭建第一个博客
 2016 · 玩全民K歌时用凡科建站为 Dream家族 做了第一个网站
 ```
+

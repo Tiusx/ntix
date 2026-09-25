@@ -1,4 +1,5 @@
 import { getAllPosts, getAllCategories, getAllTags } from "@/lib/posts";
+import { getAllPages } from "@/lib/pages";
 import { SITE_CONFIG } from "@/site.config";
 
 export const dynamic = "force-static";
@@ -12,12 +13,10 @@ export default function sitemap() {
 
   const staticRoutes = [
     "",
-    "/pages/about/",
     "/archive/",
     "/blog/",
     "/categories/",
     "/columns/",
-    "/friends/",
     "/memos/",
     "/tags/",
     "/rss.xml",
@@ -26,6 +25,13 @@ export default function sitemap() {
     lastModified: new Date(),
     changeFrequency: "weekly",
     priority: route === "" ? 1 : 0.8,
+  }));
+
+  const pageRoutes = getAllPages().map((page) => ({
+    url: `${baseUrl}/pages/${encodeURIComponent(page.slug)}/`,
+    lastModified: new Date(),
+    changeFrequency: "monthly",
+    priority: 0.6,
   }));
 
   const postRoutes = posts.map((post) => ({
@@ -49,5 +55,5 @@ export default function sitemap() {
     priority: 0.5,
   }));
 
-  return [...staticRoutes, ...postRoutes, ...categoryRoutes, ...tagRoutes];
+  return [...staticRoutes, ...pageRoutes, ...postRoutes, ...categoryRoutes, ...tagRoutes];
 }
