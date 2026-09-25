@@ -2,15 +2,8 @@ import { withRssCanonical } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  getAllPosts,
-  getPostMeta,
-  getPostStats,
-  getPostToc,
-  TOC_MIN_ENTRIES,
-} from "@/lib/posts";
+import { getAllPosts, getPostMeta, getPostStats } from "@/lib/posts";
 import { BackButton } from "@/components/back-button";
-import { Toc } from "@/components/toc";
 import LightboxImage from "@/components/lightbox-image";
 import { GiscusComments } from "@/components/giscus-comments";
 import { SITE_CONFIG } from "@/site.config";
@@ -119,7 +112,6 @@ export default async function PostPage({
   const newer = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
   const older = currentIndex >= 0 && currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
   const stats = getPostStats(meta.slug);
-  const toc = getPostToc(meta.slug);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -203,10 +195,6 @@ export default async function PostPage({
             wrapperClassName="block"
           />
         ) : null}
-
-        <div className="mx-auto max-w-[40rem]">
-          <Toc entries={toc} minEntries={TOC_MIN_ENTRIES} />
-        </div>
 
         <div className="prose mx-auto mt-10 max-w-[40rem]">
           <Post />

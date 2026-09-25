@@ -109,26 +109,6 @@ body {
   padding-inline: 1rem;
 }
 
-/* 文章文内目录：去掉 <details> 默认的展开三角，改用极简的 +/− 指示 */
-.toc > summary::-webkit-details-marker {
-  display: none;
-}
-
-.toc > summary {
-  list-style: none;
-}
-
-.toc > summary::after {
-  content: "+";
-  margin-left: 0.5rem;
-  font-family: var(--font-mono);
-  color: var(--muted);
-}
-
-.toc[open] > summary::after {
-  content: "\2212";
-}
-
 /* 导航栏像素 Logo：故障扫描效果（RGB 错位 + 周期抖动），保留像素边缘 */
 .logo-glitch {
   position: relative;

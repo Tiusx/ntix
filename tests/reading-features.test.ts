@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { createSlugger } from "@/lib/rehype-heading-ids";
-import { getAllPosts, getPostStats, getPostToc, TOC_MIN_ENTRIES } from "@/lib/posts";
+import { getAllPosts, getPostBody, getPostStats } from "@/lib/posts";
 import { OG_DEFAULT_IMAGE, withRss, withRssCanonical } from "@/lib/seo";
 import { SITE_CONFIG } from "@/site.config";
 
@@ -11,8 +11,8 @@ import { SITE_CONFIG } from "@/site.config";
  * 对应实现时的两个真实坑：
  * 1. 页面自定义 openGraph 会屏蔽继承的 opengraph-image 文件约定，
  *    因此凡是自定义了 openGraph 的页面都必须显式带 images。
- * 2. 目录锚点由 rehype 插件生成、TOC 由 lib/posts 提取，
- *    两者必须用同一份 slug 逻辑，否则锚点全部失效。
+ * 2. satori 遇到未覆盖字形会自动去 Google Fonts 抓字体，
+ *    离线/受限网络下会直接让构建失败——卡片文案必须纯 ASCII。
  */
 
 describe("createSlugger", () => {
@@ -85,42 +85,48 @@ describe("getPostStats", () => {
   });
 });
 
-describe("getPostToc", () => {
-  const bySlug = new Map(getAllPosts().map((p) => [p.slug, getPostToc(p.slug)]));
-
-  it("锚点与 getPostToc 使用同一 slug 逻辑（无非法字符）", () => {
-    for (const [slug, entries] of bySlug) {
-      for (const e of entries) {
-        expect(e.id, `${slug} -> ${e.text}`).not.toMatch(/[\s?#&/\\]/);
+/**
+ * 目录已移除，但 rehype 插件仍在为标题注入锚点 id，
+ * 目的是让「分享到文章某一节」的深链（#锚点）可用。
+ * 因此这里校验真实文章标题生成的 id 是否是 URL 安全的。
+ */
+describe("正文标题锚点（深链用）", () => {
+  /** 从真实文章正文里取 ATX 标题，忽略代码块内的 # 注释行。 */
+  function headingsOf(slug: string): string[] {
+    const body = getPostBody(slug);
+    const out: string[] = [];
+    let inFence = false;
+    for (const line of body.split("\n")) {
+      if (/^\s*(```|~~~)/.test(line)) {
+        inFence = !inFence;
+        continue;
       }
+      if (inFence) continue;
+      const m = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
+      if (m) out.push(m[2].replace(/[*_`~]/g, "").trim());
+    }
+    return out.filter(Boolean);
+  }
+
+  const allHeadings = getAllPosts().flatMap((p) =>
+    headingsOf(p.slug).map((text) => ({ slug: p.slug, text })),
+  );
+
+  it("确实取到了标题（否则本组断言失去意义）", () => {
+    expect(allHeadings.length).toBeGreaterThan(0);
+  });
+
+  it("生成的 id 不含会破坏 URL 的字符", () => {
+    for (const h of allHeadings) {
+      const id = createSlugger().slug(h.text);
+      expect(id, `${h.slug} -> ${h.text}`).not.toMatch(/[\s?#&/\\]/);
     }
   });
 
-  it("只收 h2 / h3", () => {
-    for (const entries of bySlug.values()) {
-      for (const e of entries) expect([2, 3]).toContain(e.depth);
+  it("不会产出空 id", () => {
+    for (const h of allHeadings) {
+      expect(createSlugger().slug(h.text).length).toBeGreaterThan(0);
     }
-  });
-
-  it("id 唯一", () => {
-    for (const [slug, entries] of bySlug) {
-      const ids = entries.map((e) => e.id);
-      expect(new Set(ids).size, slug).toBe(ids.length);
-    }
-  });
-
-  it("不把代码块里的 # 当成标题", () => {
-    for (const entries of bySlug.values()) {
-      for (const e of entries) {
-        expect(e.text).not.toContain("```");
-      }
-    }
-  });
-
-  it("存在「有目录」与「无目录」两种文章，阈值才有意义", () => {
-    const counts = [...bySlug.values()].map((v) => v.length);
-    expect(counts.some((c) => c >= TOC_MIN_ENTRIES)).toBe(true);
-    expect(counts.some((c) => c < TOC_MIN_ENTRIES)).toBe(true);
   });
 });
 

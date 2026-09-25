@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { createSlugger } from "./rehype-heading-ids";
 
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
 
@@ -129,42 +128,6 @@ export function getPostStats(slug: string): PostStats {
     minutes: Math.max(1, Math.round(minutes)),
   };
 }
-
-export interface TocEntry {
-  depth: 2 | 3;
-  text: string;
-  /** 与正文锚点 id 一致（见 rehype 插件 rehype-heading-ids） */
-  id: string;
-}
-
-/** 只取 ATX 标题（# / ## / ###），忽略代码块内的 # 注释行。 */
-export function getPostToc(slug: string): TocEntry[] {
-  const slugger = createSlugger();
-  const body = getPostBody(slug);
-  const entries: TocEntry[] = [];
-  let inFence = false;
-
-  for (const line of body.split("\n")) {
-    if (/^\s*(```|~~~)/.test(line)) {
-      inFence = !inFence;
-      continue;
-    }
-    if (inFence) continue;
-    const m = /^(#{2,3})\s+(.+?)\s*#*\s*$/.exec(line);
-    if (!m) continue;
-    const text = m[2].replace(/[*_`~]/g, "").trim();
-    if (!text) continue;
-    entries.push({
-      depth: m[1].length as 2 | 3,
-      text,
-      id: slugger.slug(text),
-    });
-  }
-  return entries;
-}
-
-/** 目录至少要有这么多条才值得渲染，避免短文出现无意义的折叠块。 */
-export const TOC_MIN_ENTRIES = 3;
 
 export function getPostsPage(page: number, pageSize: number): Post[] {
   const all = getAllPosts();
