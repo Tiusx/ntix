@@ -22,11 +22,14 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 图片管道为全串行（每图含下载 + sharp + R2 往返 + 100ms 延迟），
+    # 图片较多的文章会显著拉长耗时，10 分钟不够用。
+    timeout-minutes: 20
     # secrets 不能直接在 step 的 if 条件中读取；先提为 job 级 env，
     # step 的 if 走 env.NOTION_API_SECRET 判断是否配置
     env:
       NOTION_API_SECRET: ${{ secrets.NOTION_API_SECRET }}
+      NOTION_POSTS_DATABASE_ID: ${{ secrets.NOTION_POSTS_DATABASE_ID }}
       NOTION_PAGES_DATABASE_ID: ${{ secrets.NOTION_PAGES_DATABASE_ID }}
       INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
     steps:
@@ -56,21 +59,20 @@ jobs:
             echo "full_sync=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Sync memos
-        env:
-          MEMOS_API: ${{ vars.MEMOS_API || 'https://memos.tius.cn/api/v1/memos' }}
-        run: pnpm sync:memos:strict
-
-      - name: Sync posts & pages from Notion (sync:all)
-        if: env.NOTION_API_SECRET != '' && env.NOTION_PAGES_DATABASE_ID != ''
+      - name: Sync memos, posts & pages from Notion (sync:all)
+        if: env.NOTION_API_SECRET != '' && (env.NOTION_POSTS_DATABASE_ID != '' || env.NOTION_PAGES_DATABASE_ID != '')
         env:
           NOTION_POSTS_DATABASE_ID: ${{ secrets.NOTION_POSTS_DATABASE_ID }}
+          NOTION_PAGES_DATABASE_ID: ${{ secrets.NOTION_PAGES_DATABASE_ID }}
+          MEMOS_API: ${{ vars.MEMOS_API || 'https://memos.tius.cn/api/v1/memos' }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ vars.R2_BUCKET || 'cf-imgbed' }}
           R2_PUBLIC_DOMAIN: ${{ vars.R2_PUBLIC_DOMAIN || 'https://r2.tius.cn' }}
         run: |
+          # memos 由 sync:all 内部第一步同步（始终全量镜像），
+          # 此处不再单独跑一次，避免每小时的 API 负载与磁盘写入翻倍。
           if [ "${{ steps.detect.outputs.full_sync }}" = "true" ]; then
             echo "🔄 Scheduled full-sync (daily cleanup)"
             pnpm sync:all:full:strict
@@ -84,12 +86,28 @@ jobs:
           git config user.name "Tiusx"
           git config user.email "34855328+Tiusx@users.noreply.github.com"
           git add content .fetch-state.json
+
           if git diff --cached --quiet; then
             echo "No content changes; skip commit."
-          else
-            git commit -m "chore(content): sync memos and posts"
-            git push origin main
+            exit 0
           fi
+
+          # 阶段 0 已在脚本内加了空集合熔断与 50% 比例阈值；
+          # 这里是最后一道防线：若本次提交将删除过多 markdown，直接拒绝提交。
+          deleted=$(git diff --cached --name-only --diff-filter=D -- content/ | grep -c '\.md$' || true)
+          total=$(git ls-files -- content/ | grep -c '\.md$' || true)
+          echo "markdown to delete: ${deleted} / tracked: ${total}"
+          if [ "${deleted}" -gt 0 ] && [ "${total}" -gt 0 ]; then
+            ratio=$(( deleted * 100 / total ))
+            if [ "${ratio}" -gt 20 ]; then
+              echo "::error::Refusing to commit: ${ratio}% of tracked markdown would be deleted (${deleted}/${total})."
+              echo "::error::Investigate before retrying — this usually means a misconfigured Notion query."
+              exit 1
+            fi
+          fi
+
+          git commit -m "chore(content): sync memos, posts and pages"
+          git push origin main
 
       - name: Submit IndexNow URLs (Bing/Google priority indexing)
         if: env.INDEXNOW_KEY != ''
