@@ -1,26 +1,26 @@
+import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { SITE_CONFIG } from "@/site.config";
 import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
-  alternates: { canonical: "/" },
+  alternates: withRssCanonical("/"),
   openGraph: {
     type: "website",
     locale: "zh_CN",
     siteName: SITE_CONFIG.title,
     title: SITE_CONFIG.title,
-    description: SITE_CONFIG.description,
-    url: SITE_CONFIG.siteUrl,
+      description: SITE_CONFIG.description,
+      url: SITE_CONFIG.siteUrl,
+      images: ogDefaultImage(),
   },
 };
 
 const SECTIONS: [string, string][] = [
   ["/pages/about/", "@Me"],
-
   ["/blog/", "博客"],
-  // ["/archive/", "项目"],
-  // ["/photos/", "摄影"],
+  ["/archive/", "归档"],
   ["/pages/friends/", "朋友"],
   ["/memos/", "碎碎念"],
 ];

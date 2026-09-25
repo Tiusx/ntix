@@ -1,8 +1,16 @@
+import { withRssCanonical } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllPosts, getPostMeta } from "@/lib/posts";
+import {
+  getAllPosts,
+  getPostMeta,
+  getPostStats,
+  getPostToc,
+  TOC_MIN_ENTRIES,
+} from "@/lib/posts";
 import { BackButton } from "@/components/back-button";
+import { Toc } from "@/components/toc";
 import LightboxImage from "@/components/lightbox-image";
 import { GiscusComments } from "@/components/giscus-comments";
 import { SITE_CONFIG } from "@/site.config";
@@ -53,12 +61,11 @@ export async function generateMetadata({
 
   const url = `${SITE_CONFIG.siteUrl}/posts/${encodeURIComponent(meta.slug)}/`;
   const description = meta.summary || meta.title;
-  const image = meta.cover || `${SITE_CONFIG.siteUrl}/avatar.jpg`;
 
   return {
     title: meta.title,
     description,
-    alternates: { canonical: url },
+    alternates: withRssCanonical(url),
     openGraph: {
       type: "article",
       title: meta.title,
@@ -69,13 +76,13 @@ export async function generateMetadata({
       modifiedTime: meta.date,
       authors: [SITE_CONFIG.title],
       tags: meta.tags,
-      images: [{ url: image, alt: meta.title }],
+      // 刻意不声明 images：写了会盖掉同段 opengraph-image.tsx 生成的专属卡片，
+      // 让每篇文章都退回默认图。og:image（含 image:alt）由该文件约定产出。
     },
     twitter: {
       card: "summary_large_image",
       title: meta.title,
       description,
-      images: [image],
     },
     other: {
       "article:published_time": meta.date,
@@ -107,6 +114,12 @@ export default async function PostPage({
     Math.max(0, currentIndex - 2),
     currentIndex + 3
   ).filter((post) => post.slug !== meta.slug);
+
+  // allPosts 已按日期倒序：index 0 是最新一篇
+  const newer = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
+  const older = currentIndex >= 0 && currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
+  const stats = getPostStats(meta.slug);
+  const toc = getPostToc(meta.slug);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -162,6 +175,10 @@ export default async function PostPage({
                 </Link>
               </span>
             ) : null}
+            <span className="text-sub">
+              {" "}
+              · 约 {stats.minutes} 分钟 · {stats.count.toLocaleString("zh-CN")} 字
+            </span>
           </p>
           {meta.tags.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -187,9 +204,44 @@ export default async function PostPage({
           />
         ) : null}
 
+        <div className="mx-auto max-w-[40rem]">
+          <Toc entries={toc} minEntries={TOC_MIN_ENTRIES} />
+        </div>
+
         <div className="prose mx-auto mt-10 max-w-[40rem]">
           <Post />
         </div>
+
+        {(newer || older) && (
+          <nav className="mx-auto mt-12 grid max-w-[40rem] gap-3 border-t border-line pt-8 sm:grid-cols-2">
+            {older ? (
+              <Link
+                href={`/posts/${older.slug}/`}
+                className="group flex min-w-0 flex-col rounded-lg border border-line px-4 py-3 transition-colors hover:border-accent hover:bg-card"
+              >
+                <span className="text-xs text-sub">← 上一篇</span>
+                <span className="mt-1 truncate text-sm text-ink transition-colors group-hover:text-accent">
+                  {older.meta.title}
+                </span>
+              </Link>
+            ) : (
+              <span />
+            )}
+            {newer ? (
+              <Link
+                href={`/posts/${newer.slug}/`}
+                className="group flex min-w-0 flex-col rounded-lg border border-line px-4 py-3 text-right transition-colors hover:border-accent hover:bg-card"
+              >
+                <span className="text-xs text-sub">下一篇 →</span>
+                <span className="mt-1 truncate text-sm text-ink transition-colors group-hover:text-accent">
+                  {newer.meta.title}
+                </span>
+              </Link>
+            ) : (
+              <span />
+            )}
+          </nav>
+        )}
 
         <div className="mx-auto mt-12 max-w-[40rem]">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">

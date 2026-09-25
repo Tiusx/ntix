@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "prebuild": "tsx scripts/sync-memos.ts && tsx scripts/generate-search-index.ts",
+    "prebuild": "tsx scripts/sync-memos.ts && tsx scripts/generate-search-index.ts && tsx scripts/generate-og.tsx",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",

@@ -1,3 +1,4 @@
+import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
@@ -62,12 +63,13 @@ export async function generateMetadata({
   return {
     title: `${name} · 第 ${current} 页`,
     description,
-    alternates: { canonical },
+    alternates: withRssCanonical(canonical),
     openGraph: {
       title: `${name} · 第 ${current} 页`,
       description,
-      type: "website",
-      url: canonical,
+        type: "website",
+        url: canonical,
+        images: ogDefaultImage(),
     },
     twitter: {
       card: "summary",

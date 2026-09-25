@@ -1,3 +1,4 @@
+import path from "node:path";
 import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
@@ -17,6 +18,11 @@ const withMDX = createMDX({
   extension: /\.(md|mdx)$/,
   options: {
     remarkPlugins: ["remark-gfm", "remark-frontmatter"],
+    // 为标题注入锚点 id，供文章页的文内目录跳转。
+    // 必须以「绝对路径字符串」引用：@next/mdx 把 options 序列化后交给
+    // mdx-js-loader，直接传函数会报 "does not have serializable options"；
+    // 相对路径则会被 Turbopack 相对 node_modules 解析而找不到。
+    rehypePlugins: [path.join(process.cwd(), "src/lib/rehype-heading-ids.ts")],
   },
 });
 

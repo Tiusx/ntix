@@ -1,3 +1,4 @@
+import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllPosts, getPostPageCount, getPostsPage } from "@/lib/posts";
@@ -27,12 +28,13 @@ export async function generateMetadata({
   return {
     title: `文章 · 第 ${current} 页`,
     description: `文章列表第 ${current} 页，共 ${getPostPageCount(SITE_CONFIG.postsPerPage)} 页`,
-    alternates: { canonical },
+    alternates: withRssCanonical(canonical),
     openGraph: {
       title: `文章列表 · 第 ${current} 页`,
       description: `文章列表第 ${current} 页`,
-      type: "website",
-      url: canonical,
+        type: "website",
+        url: canonical,
+        images: ogDefaultImage(),
     },
     twitter: {
       card: "summary",

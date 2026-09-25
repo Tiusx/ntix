@@ -4,6 +4,7 @@ import { LightboxProvider } from "@/components/lightbox-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BackToTop } from "@/components/back-to-top";
 import { LIGHT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { withRss, ogDefaultImage } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
   },
   description: SITE_CONFIG.description,
   metadataBase: new URL(SITE_CONFIG.siteUrl),
+  alternates: withRss(),
   openGraph: {
     type: "website",
     locale: "zh_CN",
@@ -20,20 +22,15 @@ export const metadata: Metadata = {
     title: SITE_CONFIG.title,
     description: SITE_CONFIG.description,
     url: SITE_CONFIG.siteUrl,
-    images: [
-      {
-        url: "/avatar.jpg",
-        width: 1200,
-        height: 630,
-        alt: SITE_CONFIG.title,
-      },
-    ],
+    // 页面只要自己声明 openGraph 就会屏蔽这个继承值，因此那些页面必须显式
+    // 带上 images（用 ogDefaultImage()）—— tests/seo.test.ts 会检查每个页面
+    // 都有 og:image，防止漏加。
+    images: ogDefaultImage(),
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_CONFIG.title,
     description: SITE_CONFIG.description,
-    images: ["/avatar.jpg"],
   },
   robots: {
     index: true,

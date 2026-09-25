@@ -1,3 +1,4 @@
+import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
 import type { Metadata } from "next";
 import {
   CATEGORY_META_KEYS,
@@ -40,12 +41,13 @@ export async function generateMetadata({
   return {
     title: name,
     description,
-    alternates: { canonical },
+    alternates: withRssCanonical(canonical),
     openGraph: {
       title: `${name} · 分类`,
       description,
-      type: "website",
-      url: canonical,
+        type: "website",
+        url: canonical,
+        images: ogDefaultImage(),
     },
     twitter: {
       card: "summary",

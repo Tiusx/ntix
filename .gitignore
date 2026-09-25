@@ -39,6 +39,7 @@ yarn-error.log*
 
 # 构建产物：prebuild 自动生成
 /public/search-index.json
+/public/og/
 
 # vercel
 .vercel

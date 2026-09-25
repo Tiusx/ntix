@@ -1,3 +1,4 @@
+import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllTags, getPostsByTag, getPostsByTagPage, getPostsByTagPageCount } from "@/lib/posts";
@@ -30,12 +31,13 @@ export async function generateMetadata({
   return {
     title: `#${name}`,
     description: `标签 "${name}" 下的文章`,
-    alternates: { canonical },
+    alternates: withRssCanonical(canonical),
     openGraph: {
       title: `#${name} · 标签`,
       description: `标签 "${name}" 下的文章`,
-      type: "website",
-      url: canonical,
+        type: "website",
+        url: canonical,
+        images: ogDefaultImage(),
     },
     twitter: {
       card: "summary",

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { createSlugger } from "./rehype-heading-ids";
 
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
 
@@ -88,6 +89,82 @@ export function getPostBody(slug: string): string {
   if (!fs.existsSync(file)) return "";
   return matter(fs.readFileSync(file, "utf-8")).content.trim();
 }
+
+const CJK = /[㐀-䶿一-鿿豈-﫿぀-ヿ]/;
+
+/** 去掉 Markdown 语法，得到接近纯文本的内容。 */
+function toPlainText(markdown: string): string {
+  return markdown
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+[.)]\s+/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/[*_~]/g, "");
+}
+
+export interface PostStats {
+  /** 中文字数 + 英文单词数 */
+  count: number;
+  /** 预估阅读分钟数，最少 1 */
+  minutes: number;
+}
+
+/**
+ * 统计字数与阅读时长。
+ *
+ * 中文按 ~350 字/分钟、英文按 ~220 词/分钟估算，两者按实际出现比例混合——
+ * 你的文章中英混排很常见，只用单一系数会明显偏差。
+ */
+export function getPostStats(slug: string): PostStats {
+  const text = toPlainText(getPostBody(slug));
+  const cjkCount = (text.match(new RegExp(CJK, "g")) ?? []).length;
+  const wordCount = (text.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g) ?? []).length;
+  const minutes = cjkCount / 350 + wordCount / 220;
+  return {
+    count: cjkCount + wordCount,
+    minutes: Math.max(1, Math.round(minutes)),
+  };
+}
+
+export interface TocEntry {
+  depth: 2 | 3;
+  text: string;
+  /** 与正文锚点 id 一致（见 rehype 插件 rehype-heading-ids） */
+  id: string;
+}
+
+/** 只取 ATX 标题（# / ## / ###），忽略代码块内的 # 注释行。 */
+export function getPostToc(slug: string): TocEntry[] {
+  const slugger = createSlugger();
+  const body = getPostBody(slug);
+  const entries: TocEntry[] = [];
+  let inFence = false;
+
+  for (const line of body.split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const m = /^(#{2,3})\s+(.+?)\s*#*\s*$/.exec(line);
+    if (!m) continue;
+    const text = m[2].replace(/[*_`~]/g, "").trim();
+    if (!text) continue;
+    entries.push({
+      depth: m[1].length as 2 | 3,
+      text,
+      id: slugger.slug(text),
+    });
+  }
+  return entries;
+}
+
+/** 目录至少要有这么多条才值得渲染，避免短文出现无意义的折叠块。 */
+export const TOC_MIN_ENTRIES = 3;
 
 export function getPostsPage(page: number, pageSize: number): Post[] {
   const all = getAllPosts();

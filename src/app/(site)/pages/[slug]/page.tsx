@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
 import { getAllPages, getPage } from "@/lib/pages";
+import { withRssCanonical } from "@/lib/seo";
 import { GiscusComments } from "@/components/giscus-comments";
 import { SITE_CONFIG } from "@/site.config";
 
@@ -86,9 +87,7 @@ export async function generateMetadata({
   return {
     title: page.title || SITE_CONFIG.title,
     description: page.description || SITE_CONFIG.description,
-    alternates: {
-      canonical: `${SITE_CONFIG.siteUrl}/pages/${page.slug}/`,
-    },
+    alternates: withRssCanonical(`${SITE_CONFIG.siteUrl}/pages/${page.slug}/`),
   };
 }
 
