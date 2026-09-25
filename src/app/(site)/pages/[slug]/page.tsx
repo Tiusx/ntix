@@ -16,6 +16,19 @@ export function generateStaticParams() {
 
 // ```timeline 代码围栏 → 时间线；每行 `时间 描述`（时间可用任意前缀 token）
 const markdownComponents: Components = {
+  a({ href, children }) {
+    const external = href && /^https?:\/\//.test(href);
+    return (
+      <a
+        href={href}
+        {...(external
+          ? { target: "_blank", rel: "noopener noreferrer" }
+          : {})}
+      >
+        {children}
+      </a>
+    );
+  },
   pre({ node, children }) {
     // 仅吊销 timeline 的外层 <pre>，其余代码块保持默认
     const firstChild = node?.children?.[0];
