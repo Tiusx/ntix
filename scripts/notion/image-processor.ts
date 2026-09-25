@@ -1,5 +1,9 @@
 import { BlockObjectResponse, Client, PageObjectResponse } from "@notionhq/client";
 import { R2ImageUploader, isR2Url } from "./r2-uploader";
+import { withRetry } from "../lib/retry";
+
+/** 块树递归深度上限，防御异常或循环的块结构。 */
+const MAX_BLOCK_DEPTH = 10;
 
 export interface ImageProcessingStats {
   total: number;
@@ -57,19 +61,33 @@ export class NotionImageProcessor {
   }
 
   /**
-   * 递归处理所有块
+   * 递归处理所有块。
+   *
+   * depth 上限用于防止异常/循环的块树导致无界递归；
+   * 分页请求接重试，避免单次 5xx 直接让整篇文章同步失败。
    */
   private async processBlocks(
     blockId: string,
     stats: ImageProcessingStats,
     pageId: string,
     startCursor?: string,
+    depth = 0,
   ): Promise<void> {
+    if (depth > MAX_BLOCK_DEPTH) {
+      console.warn(
+        `⚠️  块树深度超过 ${MAX_BLOCK_DEPTH}，停止递归（blockId=${blockId}）`,
+      );
+      return;
+    }
     try {
-      const response = await this.notion.blocks.children.list({
-        block_id: blockId,
-        start_cursor: startCursor,
-      });
+      const response = await withRetry(
+        () =>
+          this.notion.blocks.children.list({
+            block_id: blockId,
+            start_cursor: startCursor,
+          }),
+        { label: `list blocks ${blockId}` },
+      );
 
       const blocks = response.results as BlockObjectResponse[];
 
@@ -81,13 +99,13 @@ export class NotionImageProcessor {
 
         // 递归处理子块
         if (block.has_children) {
-          await this.processBlocks(block.id, stats, pageId);
+          await this.processBlocks(block.id, stats, pageId, undefined, depth + 1);
         }
       }
 
       // 处理分页
       if (response.has_more && response.next_cursor) {
-        await this.processBlocks(blockId, stats, pageId, response.next_cursor);
+        await this.processBlocks(blockId, stats, pageId, response.next_cursor, depth);
       }
     } catch (error) {
       console.error(`❌ Error processing blocks for blockId ${blockId}:`, error);

@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { parseSyncArgs, formatSyncArgs } from "./lib/cli";
 
 /**
@@ -16,15 +17,29 @@ import { parseSyncArgs, formatSyncArgs } from "./lib/cli";
 const args = parseSyncArgs();
 const extra = formatSyncArgs({ strict: args.strict, fullSync: args.fullSync, dryRun: args.dryRun });
 
+/**
+ * 解析 tsx 的真实入口，用 node 直接执行。
+ *
+ * 不能 spawnSync("tsx", ...)：pnpm 在 Windows 上生成的是 tsx.CMD 批处理 shim，
+ * 不经 shell 无法执行，会报 ENOENT（Linux 上则能跑，属于平台相关的隐蔽失败）。
+ * 走 process.execPath + 解析出的 cli.mjs 在各平台行为一致，且不需要 shell。
+ */
+const require = createRequire(import.meta.url);
+const TSX_CLI = require.resolve("tsx/cli");
+
 function run(script: string, flags: string[]): void {
   const label = `tsx ${script}${flags.length ? ` ${flags.join(" ")}` : ""}`;
   console.log(`\n▶ ${label}`);
-  // 用数组形式传参，不经 shell 插值
-  const res = spawnSync("tsx", [script, ...flags], { stdio: "inherit", shell: false });
+  const res = spawnSync(process.execPath, [TSX_CLI, script, ...flags], {
+    stdio: "inherit",
+    shell: false,
+  });
   if (res.error) throw res.error;
   if (res.status !== 0) {
-    const err = new Error(`${script} exited with code ${res.status}`);
-    (err as NodeJS.ErrnoException).code = String(res.status);
+    const err = new Error(`${script} exited with code ${res.status}`) as Error & {
+      code?: string;
+    };
+    err.code = String(res.status);
     throw err;
   }
 }
@@ -52,6 +67,6 @@ for (const [script, flags] of steps) {
 
 if (failed > 0) {
   console.error(`\n❌ sync:all 完成，但有 ${failed} 个步骤失败。`);
-  process.exit(1);
+  process.exitCode = 1;
 }
 console.log("\n🎉 sync:all 全部完成！");

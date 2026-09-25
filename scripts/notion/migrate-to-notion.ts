@@ -2,10 +2,15 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { Client } from "@notionhq/client";
+import { Client, type BlockObjectRequest } from "@notionhq/client";
 import { markdownToBlocks } from "@tryfabric/martian";
 import matter from "gray-matter";
-import { loadEnv, resolveDataSourceId, sanitizeFileName } from "./utils";
+import {
+  appendBlocksInChunks,
+  loadEnv,
+  sanitizeFileName,
+  slugExistsInNotion,
+} from "./utils";
 import { CATEGORY_META_KEYS } from "../../src/lib/posts";
 
 /**
@@ -101,16 +106,6 @@ async function ensureDatabase(notion: Client): Promise<string> {
   return id;
 }
 
-async function slugExists(notion: Client, databaseId: string, slug: string): Promise<boolean> {
-  const dataSourceId = await resolveDataSourceId(notion, databaseId);
-  const res = await notion.dataSources.query({
-    data_source_id: dataSourceId,
-    filter: { property: "slug", rich_text: { equals: slug } },
-    page_size: 1,
-  });
-  return res.results.length > 0;
-}
-
 async function createPostPage(
   notion: Client,
   databaseId: string,
@@ -130,15 +125,8 @@ async function createPostPage(
   });
 
   // 正文 Markdown → Notion blocks，分块写入（API 单次上限 100 blocks）
-  const blocks = markdownToBlocks(post.content) as unknown as import("@notionhq/client").BlockObjectRequest[];
-  const chunkSize = 100;
-  for (let i = 0; i < blocks.length; i += chunkSize) {
-    const chunk = blocks.slice(i, i + chunkSize);
-    await notion.blocks.children.append({ block_id: page.id, children: chunk });
-    console.log(`  ⏳ Appended blocks ${i + 1}-${Math.min(i + chunkSize, blocks.length)}/${blocks.length}`);
-    await new Promise((r) => setTimeout(r, 300));
-  }
-
+  const blocks = markdownToBlocks(post.content) as unknown as BlockObjectRequest[];
+  await appendBlocksInChunks(notion, page.id, blocks);
   console.log(`✅ Created page: ${post.title} (${post.slug})`);
 }
 
@@ -162,7 +150,7 @@ async function main() {
 
   for (const post of posts) {
     try {
-      const exists = await slugExists(notion, databaseId, post.slug);
+      const exists = await slugExistsInNotion(notion, databaseId, post.slug);
       if (exists) {
         // Notion page 属性无法直接覆盖，需先在 Notion 中删除该行再重跑
         console.warn(`⚠️  ${post.slug} 已存在，跳过。如需覆盖请先在 Notion 中删除该行再重跑。`);

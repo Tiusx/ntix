@@ -1,33 +1,41 @@
 import { createHash } from "node:crypto";
 import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { optimizeImage } from "./image-optimizer";
-import { loadEnv } from "./utils";
+import { withRetry } from "../lib/retry";
 
 /**
  * Cloudflare R2 图片上传（基于 S3 兼容 API）。
  * 桶与公开域名不敏感，走环境变量（可被 .env.local 覆盖），默认值为本项目图床：
  *   桶：cf-imgbed，公开域名：https://r2.tius.cn
  * key 采用内容寻址：{:label}/{pageId}/{sha1(bytes)[:16]}.{ext}，天然幂等（HEAD 跳过）。
+ *
+ * 注意：这里刻意不在模块顶层调用 loadEnv()，也不在顶层读取 process.env。
+ * 此前 r2-uploader 顶层的 loadEnv() 是整个 Notion 管道的「承重」副作用——
+ * fetch-posts / fetch-pages 在模块作用域构造 config 并读 process.env，
+ * 之所以能读到值全靠 ES import 深度优先求值把 dotenv 提前执行了。
+ * 调整任一 import 顺序都会让两个 fetcher 报「缺少环境变量」。
+ * 现已改为由各脚本在 main() 中显式 loadEnv() 后再构造 config。
  */
-
-loadEnv();
 
 /** R2 桶名（不敏感，可被 R2_BUCKET 覆盖）。 */
-const R2_BUCKET = process.env.R2_BUCKET || "cf-imgbed";
+const r2Bucket = (): string => process.env.R2_BUCKET || "cf-imgbed";
+
 /** 绑定到 R2 桶的自定义域名（图片公开访问域名）。 */
-const R2_PUBLIC_DOMAIN = (process.env.R2_PUBLIC_DOMAIN || "https://r2.tius.cn").replace(/\/$/, "");
+const r2PublicDomain = (): string =>
+  (process.env.R2_PUBLIC_DOMAIN || "https://r2.tius.cn").replace(/\/$/, "");
+
 /**
  * 已托管域名集合（R2 图床或既有图床，逗号分隔，可被 R2_HOSTED_DOMAINS 覆盖）。
- * 命中这些域名时视为"已在图床"，同步跳过、保持原样。默认包含 r2.tius.cn 与 rimg.tius.cn。
+ * 命中这些域名时视为「已在图床」，同步跳过、保持原样。默认包含 r2.tius.cn 与 rimg.tius.cn。
  */
 const GENERIC_HOSTED = ["https://r2.tius.cn", "https://rimg.tius.cn"];
-const HOSTED_DOMAINS = (process.env.R2_HOSTED_DOMAINS || GENERIC_HOSTED.join(","))
-  .split(",")
-  .map((d) => d.trim())
-  .filter(Boolean)
-  .map((d) => new URL(d.includes("://") ? d : `https://${d}`).host);
-/** 图床自定义域名的 host 集合，用于 isR2Url 精确匹配（含上传用公开域名）。 */
-const R2_HOST = new URL(R2_PUBLIC_DOMAIN).host;
+
+const hostedDomains = (): string[] =>
+  (process.env.R2_HOSTED_DOMAINS || GENERIC_HOSTED.join(","))
+    .split(",")
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .map((d) => new URL(d.includes("://") ? d : `https://${d}`).host);
 
 export interface ImageUploadResult {
   /** 上传后的公开访问 URL */
@@ -75,7 +83,8 @@ export const composeNewImageKey = (
  */
 export const isR2Url = (url: string): boolean => {
   try {
-    return HOSTED_DOMAINS.includes(new URL(url).host) || new URL(url).host === R2_HOST;
+    const host = new URL(url).host;
+    return hostedDomains().includes(host) || host === new URL(r2PublicDomain()).host;
   } catch {
     return false;
   }
@@ -110,8 +119,8 @@ export class R2ImageUploader {
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: { accessKeyId, secretAccessKey },
     });
-    this.bucket = R2_BUCKET;
-    this.publicDomain = R2_PUBLIC_DOMAIN;
+    this.bucket = r2Bucket();
+    this.publicDomain = r2PublicDomain();
     this.dryRun = options.dryRun ?? false;
   }
 
@@ -131,15 +140,24 @@ export class R2ImageUploader {
   async uploadExternal(url: string, label: string, pageId: string): Promise<ImageUploadResult> {
     console.log(`📥 Downloading image: ${url}`);
 
-    const res = await fetch(url, {
-      cache: "no-cache",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; NotionImageUploader/1.0)",
-      },
-    });
+    const res = await withRetry(
+      () =>
+        fetch(url, {
+          cache: "no-cache",
+          signal: AbortSignal.timeout(60_000),
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; NotionImageUploader/1.0)",
+          },
+        }),
+      { attempts: 2, label: `download image ${url.slice(0, 80)}` },
+    );
 
     if (!res.ok) {
-      throw new Error(`Failed to download image: ${res.status} ${res.statusText}`);
+      const err = new Error(`Failed to download image: ${res.status} ${res.statusText}`) as Error & {
+        status: number;
+      };
+      err.status = res.status;
+      throw err;
     }
 
     const rawBuffer = Buffer.from(await res.arrayBuffer());

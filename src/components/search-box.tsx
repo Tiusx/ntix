@@ -2,16 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-
-interface SearchEntry {
-  slug: string;
-  title: string;
-  date: string;
-  category: string;
-  tags: string[];
-  summary: string;
-  content: string;
-}
+import type { SearchEntry } from "@/lib/search-index";
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

@@ -3,9 +3,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseSyncArgs } from "./lib/cli";
+import { loadEnv } from "./notion/utils";
+import { withRetry } from "./lib/retry";
 
-const MEMOS_API =
-  process.env.MEMOS_API || "https://memos.tius.cn/api/v1/memos";
+loadEnv();
+
+// 注意：MEMOS_API 必须在 loadEnv() 之后读取。
+// 本脚本在 prebuild 中作为独立进程运行（next build 之前），
+// Next 的 .env.local 自动加载对它不生效——此前没有 loadEnv()，
+// 导致 .env.local / .env 里的 MEMOS_API 在本地与 Cloudflare Pages 上被静默忽略。
+const MEMOS_API = process.env.MEMOS_API || "https://memos.tius.cn/api/v1/memos";
 const OUTPUT_DIR = path.join(process.cwd(), "content", "memos");
 const PAGE_SIZE = 100;
 
@@ -50,13 +57,14 @@ function buildFrontmatter(memo: Memo): string {
     `tags: ${JSON.stringify(memo.tags)}`,
     `pinned: ${memo.pinned}`,
     `attachments: ${JSON.stringify(memo.attachments)}`,
-    memo.location ? `location: ${JSON.stringify(memo.location)}` : "",
-    "---",
-    "",
-    memo.content.trimEnd(),
-    "",
   ];
-  return lines.filter((l) => l !== "").join("\n");
+  if (memo.location) {
+    lines.push(`location: ${JSON.stringify(memo.location)}`);
+  }
+  // 结尾 --- 与正文之间保留一个空行。此前用 lines.filter(l => l !== "")
+  // 抹掉了它，gray-matter 虽能容忍，但不符合 frontmatter 的标准形态。
+  lines.push("---", "", memo.content.trimEnd(), "");
+  return lines.join("\n");
 }
 
 async function fetchAll(): Promise<Memo[]> {
@@ -68,8 +76,20 @@ async function fetchAll(): Promise<Memo[]> {
     url.searchParams.set("limit", String(PAGE_SIZE));
     if (pageToken) url.searchParams.set("pageToken", pageToken);
 
-    const res = await fetch(url.toString());
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await withRetry(
+      () =>
+        fetch(url.toString(), {
+          signal: AbortSignal.timeout(30_000),
+          headers: { Accept: "application/json" },
+        }),
+      { label: "memos list" },
+    );
+    if (!res.ok) {
+      // 带上 status，让 withRetry 能识别 5xx/429 并重试
+      const err = new Error(`HTTP ${res.status} ${res.statusText}`) as Error & { status: number };
+      err.status = res.status;
+      throw err;
+    }
 
     const data = (await res.json()) as {
       memos: Memo[];

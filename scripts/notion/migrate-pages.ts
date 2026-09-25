@@ -2,16 +2,18 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { Client } from "@notionhq/client";
+import { Client, type BlockObjectRequest } from "@notionhq/client";
 import { markdownToBlocks } from "@tryfabric/martian";
 import matter from "gray-matter";
-import { loadEnv, resolveDataSourceId } from "./utils";
+import {
+  appendBlocksInChunks,
+  loadEnv,
+  slugExistsInNotion,
+} from "./utils";
 
 /**
- * 一次性迁移脚本：把 content/pages/ 下的存量 md 导入 Notion Pages 库。
- * - iframe：约页（about.md）直接导入
- * - friends：从 src/data/friends.ts 读取好友列表生成 markdown，导入 friends 页
- * 幂等：按 slug 跳过已存在（--force 强制更新）
+ * 一次性迁移脚本：把 content/pages/ 下的全部存量 md 导入 Notion Pages 库。
+ * 幂等：按 slug 跳过已存在（Notion page 属性无法直接覆盖，需先在 Notion 中删除该行）
  */
 
 const PAGES_DIR = path.join(process.cwd(), "content", "pages");
@@ -52,16 +54,6 @@ function collectLocalPages(): Array<{
   return entries;
 }
 
-async function slugExists(notion: Client, databaseId: string, slug: string): Promise<boolean> {
-  const dataSourceId = await resolveDataSourceId(notion, databaseId);
-  const res = await notion.dataSources.query({
-    data_source_id: dataSourceId,
-    filter: { property: "slug", rich_text: { equals: slug } },
-    page_size: 1,
-  });
-  return res.results.length > 0;
-}
-
 async function createPage(
   notion: Client,
   databaseId: string,
@@ -78,14 +70,8 @@ async function createPage(
     },
   });
 
-  const blocks = markdownToBlocks(entry.content) as unknown as import("@notionhq/client").BlockObjectRequest[];
-  const chunkSize = 100;
-  for (let i = 0; i < blocks.length; i += chunkSize) {
-    const chunk = blocks.slice(i, i + chunkSize);
-    await notion.blocks.children.append({ block_id: page.id, children: chunk });
-    console.log(`  ⏳ Appended blocks ${i + 1}-${Math.min(i + chunkSize, blocks.length)}/${blocks.length}`);
-    await new Promise((r) => setTimeout(r, 300));
-  }
+  const blocks = markdownToBlocks(entry.content) as unknown as BlockObjectRequest[];
+  await appendBlocksInChunks(notion, page.id, blocks);
   console.log(`✅ Created page: ${entry.title} (${entry.slug})`);
 }
 
@@ -114,7 +100,7 @@ async function main() {
 
   for (const entry of entries) {
     try {
-      const exists = await slugExists(notion, databaseId, entry.slug);
+      const exists = await slugExistsInNotion(notion, databaseId, entry.slug);
       if (exists && !force) {
         skipped++;
         console.log(`⏭️  Skipped existing: ${entry.slug}（--force 强制更新）`);

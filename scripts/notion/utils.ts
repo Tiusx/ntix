@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Client } from "@notionhq/client";
+import type { BlockObjectRequest } from "@notionhq/client";
 import dotenv from "dotenv";
 import type { FetchResult } from "./types";
 
@@ -128,6 +129,41 @@ export function listManagedSlugs(dir: string): string[] {
     .readdirSync(dir)
     .filter((file) => file.endsWith(".md") && !file.startsWith("_"))
     .map((file) => file.replace(/\.md$/, ""));
+}
+
+/**
+ * 判断 Notion 数据库中是否已存在指定 slug。
+ * 迁移脚本按 slug 幂等，两个迁移脚本共用此实现。
+ */
+export async function slugExistsInNotion(
+  notion: Client,
+  databaseId: string,
+  slug: string,
+): Promise<boolean> {
+  const dataSourceId = await resolveDataSourceId(notion, databaseId);
+  const res = await notion.dataSources.query({
+    data_source_id: dataSourceId,
+    filter: { property: "slug", rich_text: { equals: slug } },
+    page_size: 1,
+  });
+  return res.results.length > 0;
+}
+
+/** Notion blocks 分块追加：单次 API 上限 100 blocks。 */
+export async function appendBlocksInChunks(
+  notion: Client,
+  blockId: string,
+  blocks: BlockObjectRequest[],
+  options: { chunkSize?: number; delayMs?: number } = {},
+): Promise<void> {
+  const { chunkSize = 100, delayMs = 300 } = options;
+  for (let i = 0; i < blocks.length; i += chunkSize) {
+    const chunk = blocks.slice(i, i + chunkSize);
+    await notion.blocks.children.append({ block_id: blockId, children: chunk });
+    if (i + chunkSize < blocks.length) {
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
 }
 
 export interface CleanupOptions {

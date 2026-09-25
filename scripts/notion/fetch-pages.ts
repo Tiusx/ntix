@@ -61,40 +61,44 @@ export function generatePageContent(metadata: PageMetadata, content: string): st
   return lines.join("\n");
 }
 
-const pageConfig: NotionFetcherConfig<PageMetadata> = {
-  databaseId: process.env.NOTION_PAGES_DATABASE_ID || "",
-  notionApiSecret: process.env.NOTION_API_SECRET || "",
-  outputDir: path.join(process.cwd(), "content/pages"),
-  label: "page",
-  imagePrefix: "pages",
-  lastFetchedTimeProperty: "last_fetched_time",
-  buildFilter: (since?: Date) => ({
-    and: [
-      { property: "status", select: { equals: "Published" } },
-      ...(since
-        ? [
-            {
-              timestamp: "last_edited_time",
-              last_edited_time: { on_or_after: since.toISOString() },
-            },
-          ]
-        : []),
-    ],
-  }),
-  buildSort: () => [{ property: "title", direction: "ascending" }],
-  extractMetadata: extractPageMeta,
-  getFileKey: (e) => e.slug,
-  getPageId: (e) => e.page_id,
-  getConvertIdentifier: (e) => e.slug,
-  getLastFetchedTime: (e) => e.last_fetched_time,
-  getLastEditedTime: (e) => e.last_edited_time,
-  generateContent: generatePageContent,
-  withLastFetchedTime: (e, t) => ({ ...e, last_fetched_time: t }),
-};
+/** 必须在 loadEnv() 之后调用，理由同 fetch-posts.ts。 */
+function buildPageConfig(): NotionFetcherConfig<PageMetadata> {
+  return {
+    databaseId: process.env.NOTION_PAGES_DATABASE_ID || "",
+    notionApiSecret: process.env.NOTION_API_SECRET || "",
+    outputDir: path.join(process.cwd(), "content/pages"),
+    label: "page",
+    imagePrefix: "pages",
+    lastFetchedTimeProperty: "last_fetched_time",
+    buildFilter: (since?: Date) => ({
+      and: [
+        { property: "status", select: { equals: "Published" } },
+        ...(since
+          ? [
+              {
+                timestamp: "last_edited_time",
+                last_edited_time: { on_or_after: since.toISOString() },
+              },
+            ]
+          : []),
+      ],
+    }),
+    buildSort: () => [{ property: "title", direction: "ascending" }],
+    extractMetadata: extractPageMeta,
+    getFileKey: (e) => e.slug,
+    getPageId: (e) => e.page_id,
+    getConvertIdentifier: (e) => e.slug,
+    getLastFetchedTime: (e) => e.last_fetched_time,
+    getLastEditedTime: (e) => e.last_edited_time,
+    generateContent: generatePageContent,
+    withLastFetchedTime: (e, t) => ({ ...e, last_fetched_time: t }),
+  };
+}
 
 async function main() {
   loadEnv();
 
+  const pageConfig = buildPageConfig();
   if (!pageConfig.databaseId || !pageConfig.notionApiSecret) {
     throw new Error(
       "Missing required environment variables: NOTION_PAGES_DATABASE_ID, NOTION_API_SECRET",
@@ -110,10 +114,9 @@ async function main() {
 
   if (args.strict && result.errors > 0) {
     console.error(`❌ Strict mode: ${result.errors} error(s) occurred.`);
-    process.exit(1);
+    process.exitCode = 1;
   }
-
-  process.exit(0);
+  // 不使用 process.exit(0)，理由同 fetch-posts.ts
 }
 
 main().catch((error) => {
