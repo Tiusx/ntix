@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "我的日常碎片和随口说说。",
 };
 
-function MemosPagination({ current, total }: { current: number; total: number }) {
+function MemosPagination({ current }: { current: number }) {
   const totalPages = getMemosPageCount(MEMOS_PER_PAGE);
   const hrefFor = (page: number) => (page === 1 ? "/memos/" : `/memos/${page}/`);
 
@@ -55,7 +55,7 @@ export default function MemosPage() {
 
       <MemosFeed memos={memos} />
 
-      {totalPages > 1 && <MemosPagination current={1} total={totalPages} />}
+      {totalPages > 1 && <MemosPagination current={1} />}
     </main>
   );
 }

@@ -26,35 +26,79 @@ export async function resolveDataSourceId(
 }
 
 // ─── Notion property helpers ──────────────────────────────────────────────────
+//
+// 这些 getter 曾用 `any`，导致 Notion 属性一改名就静默返回 ""，
+// 生成的 frontmatter 全空却没有任何报错。这里改为收窄到具体类型，
+// 并提供 requireProperty 在属性缺失时快速失败。
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getTextProperty = (prop: any): string => {
+/** Notion page property 的宽松视图：只声明本模块实际读取的字段。 */
+interface PropertyValue {
+  type?: string;
+  title?: Array<{ plain_text?: string }>;
+  rich_text?: Array<{ plain_text?: string }>;
+  select?: { name?: string } | null;
+  multi_select?: Array<{ name?: string }>;
+  date?: { start?: string | null } | null;
+  checkbox?: boolean;
+  files?: Array<{
+    type?: string;
+    name?: string;
+    file?: { url?: string };
+    external?: { url?: string };
+  }>;
+}
+
+type Properties = Record<string, unknown>;
+
+/**
+ * 取出指定属性；不存在则抛错。
+ *
+ * 之前所有 getter 都是 `prop?.x ?? ""`，属性被改名 / 删除时全部静默降级为空值，
+ * 表现为「同步成功但 frontmatter 全空」，极难排查。这里让缺失立刻可见。
+ */
+export function requireProperty(
+  properties: Properties,
+  name: string,
+  context: string,
+): PropertyValue {
+  const prop = properties[name];
+  if (prop === undefined || prop === null) {
+    throw new Error(
+      `Notion ${context} is missing the "${name}" property. ` +
+        `Available: ${Object.keys(properties).join(", ") || "(none)"}`,
+    );
+  }
+  return prop as PropertyValue;
+}
+
+const joinPlainText = (items?: Array<{ plain_text?: string }>): string =>
+  (items ?? []).map((t) => t.plain_text ?? "").join("");
+
+export const getTextProperty = (prop: PropertyValue | undefined): string => {
   if (!prop) return "";
-  if (prop.type === "title") return prop.title.map((t: any) => t.plain_text).join("");
-  if (prop.type === "rich_text") return prop.rich_text.map((t: any) => t.plain_text).join("");
+  if (prop.type === "title") return joinPlainText(prop.title);
+  if (prop.type === "rich_text") return joinPlainText(prop.rich_text);
   return "";
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getSelectProperty = (prop: any): string => prop?.select?.name || "";
+export const getSelectProperty = (prop: PropertyValue | undefined): string =>
+  prop?.select?.name ?? "";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getMultiSelectProperty = (prop: any): string[] =>
-  prop?.multi_select?.map((item: any) => item.name) || [];
+export const getMultiSelectProperty = (prop: PropertyValue | undefined): string[] =>
+  (prop?.multi_select ?? []).map((item) => item.name ?? "").filter(Boolean);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getDateProperty = (prop: any): string => prop?.date?.start || "";
+export const getDateProperty = (prop: PropertyValue | undefined): string =>
+  prop?.date?.start ?? "";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getCheckboxProperty = (prop: any): boolean => Boolean(prop?.checkbox);
+export const getCheckboxProperty = (prop: PropertyValue | undefined): boolean =>
+  Boolean(prop?.checkbox);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getFilesProperty = (prop: any): string => {
+export const getFilesProperty = (prop: PropertyValue | undefined): string => {
   const files = prop?.files;
   if (!Array.isArray(files) || files.length === 0) return "";
   const first = files[0];
-  if (first.type === "file") return first.file.url;
-  if (first.type === "external") return first.external.url;
+  if (first.type === "file") return first.file?.url ?? "";
+  if (first.type === "external") return first.external?.url ?? "";
   return "";
 };
 
@@ -75,6 +119,15 @@ export function sanitizeFileName(name: string): string {
     .replace(/-+/g, "-")
     .replace(/^[-.]+|[-.]+$/g, "");
   return cleaned || "untitled";
+}
+
+/** 列出目录下所有可管理的 markdown slug（跳过 _ 前缀的构建占位文件）。 */
+export function listManagedSlugs(dir: string): string[] {
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((file) => file.endsWith(".md") && !file.startsWith("_"))
+    .map((file) => file.replace(/\.md$/, ""));
 }
 
 export interface CleanupOptions {

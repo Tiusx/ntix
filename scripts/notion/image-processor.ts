@@ -1,5 +1,4 @@
-import { Client } from "@notionhq/client";
-import { BlockObjectResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { BlockObjectResponse, Client, PageObjectResponse } from "@notionhq/client";
 import { R2ImageUploader, isR2Url } from "./r2-uploader";
 
 export interface ImageProcessingStats {

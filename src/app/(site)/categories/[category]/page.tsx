@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import {
-  CATEGORY_META,
   CATEGORY_META_KEYS,
   getCategoryDescription,
   getPostsByCategory,

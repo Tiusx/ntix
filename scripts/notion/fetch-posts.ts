@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import path from "node:path";
-import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { PageObjectResponse } from "@notionhq/client";
 import { NotionDatabaseFetcher, NotionFetcherConfig } from "./notion-fetcher";
 import { PostMetadata, SyncMode } from "./types";
 import { parseSyncArgs } from "../lib/cli";
@@ -12,23 +12,26 @@ import {
   getDateProperty,
   getFilesProperty,
   loadEnv,
+  requireProperty,
   sanitizeFileName,
 } from "./utils";
 
 function extractPostMeta(page: PageObjectResponse): PostMetadata {
-  const properties = page.properties;
+  const properties = page.properties as Record<string, unknown>;
+  // 属性缺失立刻抛错，而不是静默产出空 frontmatter
+  const prop = (name: string) => requireProperty(properties, name, "post");
   return {
     page_id: page.id,
-    title: getTextProperty(properties.title),
-    slug: sanitizeFileName(getTextProperty(properties.slug)),
-    category: getSelectProperty(properties.category),
-    tags: getMultiSelectProperty(properties.tags),
-    date: getDateProperty(properties.date),
-    summary: getTextProperty(properties.summary),
-    cover: getFilesProperty(properties.cover),
-    status: getSelectProperty(properties.status),
+    title: getTextProperty(prop("title")),
+    slug: sanitizeFileName(getTextProperty(prop("slug"))),
+    category: getSelectProperty(prop("category")),
+    tags: getMultiSelectProperty(prop("tags")),
+    date: getDateProperty(prop("date")),
+    summary: getTextProperty(prop("summary")),
+    cover: getFilesProperty(prop("cover")),
+    status: getSelectProperty(prop("status")),
     last_edited_time: page.last_edited_time,
-    last_fetched_time: getDateProperty(properties.last_fetched_time),
+    last_fetched_time: getDateProperty(prop("last_fetched_time")),
   };
 }
 

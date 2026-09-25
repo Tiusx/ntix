@@ -12,7 +12,7 @@ import { CATEGORY_META_KEYS } from "../../src/lib/posts";
  * 一次性迁移脚本：
  * 1. 若 NOTION_POSTS_DATABASE_ID 未设置，自动创建 Notion database
  * 2. 读取 content/posts/ 下的存量 Markdown，导入为 Notion database 中的 page
- * 3. 按 slug 幂等：已存在则跳过（--force 强制更新）
+ * 3. 按 slug 幂等：已存在则跳过（需先在 Notion 中删除该行才会重新导入）
  */
 
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
@@ -155,8 +155,6 @@ async function main() {
 
   const posts = parseLocalPosts();
   console.log(`📖 Found ${posts.length} local posts to import`);
-
-  const force = process.argv.includes("--force");
 
   let created = 0;
   let skipped = 0;

@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import path from "node:path";
-import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { PageObjectResponse } from "@notionhq/client";
 import { NotionDatabaseFetcher, NotionFetcherConfig } from "./notion-fetcher";
 import { SyncMode } from "./types";
 import { parseSyncArgs } from "../lib/cli";
@@ -11,6 +11,7 @@ import {
   getCheckboxProperty,
   getDateProperty,
   loadEnv,
+  requireProperty,
   sanitizeFileName,
 } from "./utils";
 
@@ -25,20 +26,19 @@ export interface PageMetadata {
   last_fetched_time: string | null;
 }
 
-/** 与顶级/保留路由冲突的 slug，避免被 [slug] 遮蔽或构建异常 */
-
 function extractPageMeta(page: PageObjectResponse): PageMetadata {
-  const properties = page.properties;
-  const slug = sanitizeFileName(getTextProperty(properties.slug));
+  const properties = page.properties as Record<string, unknown>;
+  // 属性缺失立刻抛错，而不是静默产出空 frontmatter
+  const prop = (name: string) => requireProperty(properties, name, "page");
   return {
     page_id: page.id,
-    title: getTextProperty(properties.title),
-    slug,
-    description: getTextProperty(properties.description),
-    status: getSelectProperty(properties.status),
-    enable_comments: getCheckboxProperty(properties.enable_comments),
+    title: getTextProperty(prop("title")),
+    slug: sanitizeFileName(getTextProperty(prop("slug"))),
+    description: getTextProperty(prop("description")),
+    status: getSelectProperty(prop("status")),
+    enable_comments: getCheckboxProperty(prop("enable_comments")),
     last_edited_time: page.last_edited_time,
-    last_fetched_time: getDateProperty(properties.last_fetched_time),
+    last_fetched_time: getDateProperty(prop("last_fetched_time")),
   };
 }
 

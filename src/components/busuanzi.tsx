@@ -14,6 +14,8 @@ export function BusuanziCounter() {
   const retryRef = useRef<number | null>(null);
   const attemptRef = useRef(0);
   const cleanupRef = useRef<(() => void) | null>(null);
+  // 通过 ref 间接引用自身，避免在 useCallback 体内前置引用（TDZ）
+  const fetchRef = useRef<() => void>(() => {});
 
   const fetchStats = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -50,11 +52,16 @@ export function BusuanziCounter() {
       cleanup();
       attemptRef.current += 1;
       if (attemptRef.current < 3) {
-        retryRef.current = window.setTimeout(fetchStats, 5000);
+        retryRef.current = window.setTimeout(() => fetchRef.current(), 5000);
       }
     };
     document.head.appendChild(script);
   }, []);
+
+  // ref 只能在 effect 中写入，不能在渲染期间赋值
+  useEffect(() => {
+    fetchRef.current = fetchStats;
+  }, [fetchStats]);
 
   useEffect(() => {
     attemptRef.current = 0;

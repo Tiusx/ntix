@@ -13,6 +13,14 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "sync:memos": "tsx scripts/sync-memos.ts",
     "sync:memos:strict": "tsx scripts/sync-memos.ts --strict",
     "sync:memos:dry": "tsx scripts/sync-memos.ts --dry-run",
@@ -62,12 +70,19 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.13.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.0.1",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.3.6",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.9",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
-    "typescript": "^5"
+    "typescript": "^5",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.1"
   },
   "packageManager": "pnpm@10.34.5"
 }

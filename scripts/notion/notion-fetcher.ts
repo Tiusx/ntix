@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Client } from "@notionhq/client";
-import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { Client, PageObjectResponse } from "@notionhq/client";
 import { NotionToMDXConverter } from "./notion-to-md";
 import { FetchResult, FetchState, FetchStateEntry, SyncMode } from "./types";
 import { ensureDirectory, cleanupOrphanedFiles, resolveDataSourceId } from "./utils";
