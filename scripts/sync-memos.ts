@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { parseSyncArgs } from "./lib/cli";
 
 const MEMOS_API =
   process.env.MEMOS_API || "https://memos.tius.cn/api/v1/memos";
@@ -86,16 +87,25 @@ async function fetchAll(): Promise<Memo[]> {
   return memos;
 }
 
-function sync(memos: Memo[]): { updated: number; deleted: number } {
+function sync(
+  memos: Memo[],
+  dryRun: boolean,
+): { updated: number; deleted: number } {
   ensureDir(OUTPUT_DIR);
 
   const live = new Set<string>();
+  let written = 0;
   for (const memo of memos) {
     const slug = memo.name.replace(/^memos\//, "");
     live.add(slug);
     const content = buildFrontmatter(memo);
     const file = path.join(OUTPUT_DIR, `${slug}.md`);
     if (fs.existsSync(file) && fs.readFileSync(file, "utf-8") === content) {
+      continue;
+    }
+    written++;
+    if (dryRun) {
+      console.log(`🔍 [dry-run] would write content/memos/${slug}.md`);
       continue;
     }
     fs.writeFileSync(file, content, "utf-8");
@@ -106,27 +116,33 @@ function sync(memos: Memo[]): { updated: number; deleted: number } {
   for (const file of fs.readdirSync(OUTPUT_DIR)) {
     if (!file.endsWith(".md")) continue;
     const slug = file.replace(/\.md$/, "");
-    if (!live.has(slug)) {
-      fs.unlinkSync(path.join(OUTPUT_DIR, file));
-      deleted++;
-      console.log(`🗑️  删除已下架: ${file}`);
+    if (live.has(slug)) continue;
+    deleted++;
+    if (dryRun) {
+      console.log(`🔍 [dry-run] would delete 已下架: ${file}`);
+      continue;
     }
+    fs.unlinkSync(path.join(OUTPUT_DIR, file));
+    console.log(`🗑️  删除已下架: ${file}`);
   }
 
-  return { updated: live.size, deleted };
+  return { updated: written, deleted };
 }
 
 async function main() {
-  const strict = process.argv.includes("--strict");
+  const args = parseSyncArgs();
+  if (args.dryRun) {
+    console.log("🔍 DRY RUN — 不会写入或删除任何文件");
+  }
   try {
     const memos = await fetchAll();
     console.log(`📚 共 ${memos.length} 条公开 Memos`);
-    const { updated, deleted } = sync(memos);
-    console.log(`🎉 完成！memos=${updated}, deleted=${deleted}`);
+    const { updated, deleted } = sync(memos, args.dryRun);
+    console.log(`🎉 完成！写入=${updated}, 删除=${deleted}, 线上共=${memos.length}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`⚠️  sync-memos 失败（保留上次快照）: ${message}`);
-    if (strict) process.exit(1);
+    if (args.strict) process.exit(1);
   }
 }
 

@@ -6,11 +6,19 @@ export class NotionToMDXConverter {
   private notion: Client;
   private n2m: NotionToMarkdown;
   private imageProcessor: NotionImageProcessor;
+  private dryRun: boolean;
 
-  constructor(notionApiSecret: string, imagePrefix: string = "blog") {
+  constructor(
+    notionApiSecret: string,
+    imagePrefix: string = "blog",
+    options: { dryRun?: boolean } = {},
+  ) {
     this.notion = new Client({ auth: notionApiSecret });
     this.n2m = new NotionToMarkdown({ notionClient: this.notion });
-    this.imageProcessor = new NotionImageProcessor(notionApiSecret, imagePrefix);
+    this.dryRun = options.dryRun ?? false;
+    this.imageProcessor = new NotionImageProcessor(notionApiSecret, imagePrefix, {
+      dryRun: this.dryRun,
+    });
   }
 
   async convertToMDX(
@@ -43,6 +51,10 @@ export class NotionToMDXConverter {
     pageId: string,
     propertyName = "last_fetched_time",
   ): Promise<void> {
+    if (this.dryRun) {
+      console.log(`🔍 [dry-run] would update ${propertyName} for page ${pageId}`);
+      return;
+    }
     try {
       const now = new Date().toISOString();
       await this.notion.pages.update({

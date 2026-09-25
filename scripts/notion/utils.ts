@@ -77,37 +77,94 @@ export function sanitizeFileName(name: string): string {
   return cleaned || "untitled";
 }
 
+export interface CleanupOptions {
+  /** 只打印待删清单，不落盘 */
+  dryRun?: boolean;
+  /** 跳过比例阈值检查（人工确认后使用） */
+  force?: boolean;
+  /** 待删比例超过此值即中止，默认 0.5 */
+  maxDeleteRatio?: number;
+}
+
+const DEFAULT_MAX_DELETE_RATIO = 0.5;
+
+/** 列出一行以内可读的清单，超出则截断。 */
+function preview(names: string[], limit = 10): string {
+  const shown = names.slice(0, limit).join(", ");
+  return names.length > limit ? `${shown} …（共 ${names.length} 个）` : shown;
+}
+
 /**
  * 清理目录中不在 published 集合内的 .md 文件。
  * 保留 _placeholder.md（ntix 用它保证 webpack 动态 import 上下文在空目录时可用）。
+ *
+ * 安全护栏：publishedIds 为空、或待删比例异常时直接抛错中止，绝不删除。
+ * Notion 查询一旦因配置错误 / 权限变更返回空结果，publishedIds 即为空，
+ * 此时若无护栏会清空整个 content 目录。
  */
 export function cleanupOrphanedFiles(
   dir: string,
   publishedIds: Set<string>,
   result: FetchResult,
+  options: CleanupOptions = {},
 ): void {
+  const { dryRun = false, force = false, maxDeleteRatio = DEFAULT_MAX_DELETE_RATIO } = options;
+
+  // 护栏 1：published 为空一定是查询出了问题，不是「内容都下架了」
+  if (publishedIds.size === 0) {
+    throw new Error(
+      `Refusing to clean ${dir}: Notion returned 0 published entries. ` +
+        `This usually means a wrong database id, a renamed "status" select option, ` +
+        `or lost API access — not that all content was removed. ` +
+        `Re-check the Notion config, then re-run with --force if the wipe is intended.`,
+    );
+  }
+
+  let files: string[];
   try {
-    const files = fs.readdirSync(dir);
-    let checked = 0;
-    for (const file of files) {
-      if (!file.endsWith(".md")) continue;
-      if (file.startsWith("_")) continue;
-      checked++;
-      const id = file.replace(/\.md$/, "");
-      if (!publishedIds.has(id)) {
-        try {
-          fs.unlinkSync(path.join(dir, file));
-          result.deleted++;
-          console.log(`🗑️ Deleted orphaned file: ${file}`);
-        } catch (err) {
-          result.errors++;
-          console.error(`❌ Failed to delete orphaned file ${file}:`, err);
-        }
-      }
-    }
-    console.log(`🧹 Orphan cleanup checked ${checked} files in ${dir}`);
+    files = fs.readdirSync(dir);
   } catch (err) {
     result.errors++;
     console.error("❌ Failed during orphaned files cleanup:", err);
+    return;
+  }
+
+  const managed = files.filter((f) => f.endsWith(".md") && !f.startsWith("_"));
+  const orphans = managed.filter((f) => !publishedIds.has(f.replace(/\.md$/, "")));
+
+  if (orphans.length === 0) {
+    console.log(`🧹 Orphan cleanup: ${managed.length} files, nothing to remove (${dir})`);
+    return;
+  }
+
+  // 护栏 2：待删比例过高通常是查询结果不完整
+  const ratio = orphans.length / managed.length;
+  if (ratio > maxDeleteRatio && !force) {
+    throw new Error(
+      `Refusing to delete ${orphans.length}/${managed.length} files (${Math.round(ratio * 100)}%) ` +
+        `in ${dir} — above the ${Math.round(maxDeleteRatio * 100)}% safety threshold. ` +
+        `Orphans: ${preview(orphans)}. ` +
+        `Re-run with --force to delete them anyway.`,
+    );
+  }
+
+  console.log(
+    `🧹 Orphan cleanup: ${orphans.length}/${managed.length} files are no longer published in ${dir}`,
+  );
+
+  if (dryRun) {
+    console.log(`   [dry-run] would delete: ${preview(orphans)}`);
+    return;
+  }
+
+  for (const file of orphans) {
+    try {
+      fs.unlinkSync(path.join(dir, file));
+      result.deleted++;
+      console.log(`🗑️ Deleted orphaned file: ${file}`);
+    } catch (err) {
+      result.errors++;
+      console.error(`❌ Failed to delete orphaned file ${file}:`, err);
+    }
   }
 }

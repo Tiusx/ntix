@@ -5,6 +5,7 @@ import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { NotionToMDXConverter } from "./notion-to-md";
 import { FetchResult, FetchState, FetchStateEntry, SyncMode } from "./types";
 import { ensureDirectory, cleanupOrphanedFiles, resolveDataSourceId } from "./utils";
+import { withRetry } from "../lib/retry";
 
 export interface NotionFetcherConfig<T> {
   databaseId: string;
@@ -35,16 +36,26 @@ export interface NotionFetcherConfig<T> {
 
 const STATE_FILE = path.join(process.cwd(), ".fetch-state.json");
 
+export interface FetcherOptions {
+  /** 只打印将要发生的变更，不落盘（不写 content，也不推进 .fetch-state.json） */
+  dryRun?: boolean;
+}
+
 export class NotionDatabaseFetcher<T> {
   private notion: Client;
   private converter: NotionToMDXConverter;
+  private dryRun: boolean;
 
   constructor(
     private config: NotionFetcherConfig<T>,
     private syncMode: SyncMode,
+    options: FetcherOptions = {},
   ) {
     this.notion = new Client({ auth: config.notionApiSecret });
-    this.converter = new NotionToMDXConverter(config.notionApiSecret, config.imagePrefix);
+    this.converter = new NotionToMDXConverter(config.notionApiSecret, config.imagePrefix, {
+      dryRun: options.dryRun ?? false,
+    });
+    this.dryRun = options.dryRun ?? false;
   }
 
   async fetch(): Promise<FetchResult> {
@@ -52,7 +63,6 @@ export class NotionDatabaseFetcher<T> {
     let since: Date | undefined;
 
     const existingState = this.readState();
-    const isFirstRun = existingState === null;
 
     if (this.syncMode === "incremental") {
       if (!existingState?.lastSuccessfulRun) {
@@ -63,6 +73,10 @@ export class NotionDatabaseFetcher<T> {
       } else {
         since = new Date(existingState.lastSuccessfulRun);
       }
+    }
+
+    if (this.dryRun) {
+      console.log(`🔍 DRY RUN — no files will be written and no state will be saved.`);
     }
 
     console.log(
@@ -83,12 +97,14 @@ export class NotionDatabaseFetcher<T> {
 
     if (toUpdate.length === 0 && effectiveSyncMode !== "force") {
       if (shouldCleanOrphans) {
-        cleanupOrphanedFiles(this.config.outputDir, publishedIds, result);
+        // 走到这里 effectiveSyncMode 只可能是 "full-sync"（incremental 不清理，
+        // force 已被上面的条件短路），因此比例阈值始终生效，不可绕过。
+        cleanupOrphanedFiles(this.config.outputDir, publishedIds, result, {
+          dryRun: this.dryRun,
+        });
       }
       console.log(`✅ All ${this.config.label} entries are up to date!`);
-      if (result.updated > 0 || result.deleted > 0 || isFirstRun) {
-        this.writeState(effectiveSyncMode);
-      }
+      this.persistState(result, effectiveSyncMode);
       return result;
     }
 
@@ -105,18 +121,40 @@ export class NotionDatabaseFetcher<T> {
     }
 
     if (shouldCleanOrphans) {
-      cleanupOrphanedFiles(this.config.outputDir, publishedIds, result);
+      cleanupOrphanedFiles(this.config.outputDir, publishedIds, result, {
+        dryRun: this.dryRun,
+        force: effectiveSyncMode === "force",
+      });
     }
 
     console.log(
       `🎉 Done fetching ${this.config.label}! Updated: ${result.updated}, Deleted: ${result.deleted}, Skipped: ${result.skipped}, Errors: ${result.errors}`,
     );
 
-    if (result.updated > 0 || result.deleted > 0 || isFirstRun) {
-      this.writeState(effectiveSyncMode);
-    }
+    this.persistState(result, effectiveSyncMode);
 
     return result;
+  }
+
+  /**
+   * 推进 .fetch-state.json 的水位。
+   * - dry-run 永不写状态
+   * - 有 errors 时不推进：水位前移会让失败条目被永久跳过
+   * - 零变更的成功运行也要推进：否则 since 永久停滞，增量查询成本单调增长
+   */
+  private persistState(result: FetchResult, mode: SyncMode): void {
+    if (this.dryRun) {
+      console.log(`🔍 DRY RUN — skipping state write for "${this.config.label}"`);
+      return;
+    }
+    if (result.errors > 0) {
+      console.warn(
+        `⚠️  Not advancing sync watermark for "${this.config.label}": ${result.errors} error(s). ` +
+          `Failed entries stay eligible for the next run.`,
+      );
+      return;
+    }
+    this.writeState(mode);
   }
 
   private readState(): FetchStateEntry | null {
@@ -144,7 +182,10 @@ export class NotionDatabaseFetcher<T> {
       lastSuccessfulRun: now,
       lastFullSync: mode === "full-sync" || mode === "force" ? now : existing.lastFullSync,
     };
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
+    // 原子写：先写临时文件再 rename，避免崩溃留下半截 JSON
+    const tmp = `${STATE_FILE}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(state, null, 2), "utf-8");
+    fs.renameSync(tmp, STATE_FILE);
     console.log(`💾 State saved for "${this.config.label}" [${mode}]`);
   }
 
@@ -152,15 +193,22 @@ export class NotionDatabaseFetcher<T> {
     const entries: T[] = [];
     let startCursor: string | undefined;
 
-    const dataSourceId = await resolveDataSourceId(this.notion, this.config.databaseId);
+    const dataSourceId = await withRetry(
+      () => resolveDataSourceId(this.notion, this.config.databaseId),
+      { label: `resolve data source for "${this.config.label}"` },
+    );
 
     do {
-      const response = await this.notion.dataSources.query({
-        data_source_id: dataSourceId,
-        filter: this.config.buildFilter(since) as never,
-        sorts: this.config.buildSort() as never,
-        start_cursor: startCursor,
-      });
+      const response = await withRetry(
+        () =>
+          this.notion.dataSources.query({
+            data_source_id: dataSourceId,
+            filter: this.config.buildFilter(since) as never,
+            sorts: this.config.buildSort() as never,
+            start_cursor: startCursor,
+          }),
+        { label: `query ${this.config.label} entries` },
+      );
 
       const pageEntries = response.results
         .filter((page) => page.object === "page")
@@ -218,15 +266,23 @@ export class NotionDatabaseFetcher<T> {
       );
     }
 
-    await this.converter.updateBlogLastFetchedTime(pageId, this.config.lastFetchedTimeProperty);
-
     let finalEntry = this.config.withLastFetchedTime(updatedEntry, new Date().toISOString());
     if (this.config.beforeGenerateContent) {
       finalEntry = await this.config.beforeGenerateContent(finalEntry);
     }
     const mdContent = this.config.generateContent(finalEntry, content);
-
     const filePath = path.join(this.config.outputDir, `${this.config.getFileKey(entry)}.md`);
+
+    if (this.dryRun) {
+      console.log(`🔍 DRY RUN — would write ${path.relative(process.cwd(), filePath)}`);
+      return;
+    }
+
+    // 顺序很重要：必须先把本地文件落盘，再回写 Notion 的 last_fetched_time。
+    // 反过来的话，一旦 writeFileSync 失败，Notion 已记录「已同步」，
+    // filterToUpdate 会永久跳过该页，本地 .md 再也无法重新生成。
     fs.writeFileSync(filePath, mdContent, "utf-8");
+
+    await this.converter.updateBlogLastFetchedTime(pageId, this.config.lastFetchedTimeProperty);
   }
 }

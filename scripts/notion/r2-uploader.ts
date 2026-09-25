@@ -92,8 +92,9 @@ export class R2ImageUploader {
   private client: S3Client;
   private bucket: string;
   private publicDomain: string;
+  private dryRun: boolean;
 
-  constructor() {
+  constructor(options: { dryRun?: boolean } = {}) {
     const accountId = process.env.R2_ACCOUNT_ID;
     const accessKeyId = process.env.R2_ACCESS_KEY_ID;
     const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
@@ -111,6 +112,7 @@ export class R2ImageUploader {
     });
     this.bucket = R2_BUCKET;
     this.publicDomain = R2_PUBLIC_DOMAIN;
+    this.dryRun = options.dryRun ?? false;
   }
 
   /** R2 上传凭据是否已配置（未配置时图片转存静默跳过）。 */
@@ -147,6 +149,14 @@ export class R2ImageUploader {
     const { buffer, ext, contentType } = await optimizeImage(rawBuffer, rawExt);
     const key = composeNewImageKey(label, pageId, buffer, ext);
     const publicUrl = `${this.publicDomain}/${key}`;
+
+    // key 是内容寻址的，因此 dry-run 能在不上传的前提下算出最终 URL，
+    // 预览结果与真实上传完全一致。
+    if (this.dryRun) {
+      console.log(`🔍 [dry-run] would upload to R2: ${key}`);
+      console.log(`              → ${publicUrl}`);
+      return { url: publicUrl, fileName: key, size: buffer.length };
+    }
 
     const head = await this.headObject(key);
     if (head) {

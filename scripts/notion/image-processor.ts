@@ -13,13 +13,18 @@ export class NotionImageProcessor {
   private notion: Client;
   private imagePrefix: string;
   private uploader: R2ImageUploader | null;
+  private dryRun: boolean;
 
-  constructor(notionApiSecret: string, imagePrefix: string = "blog") {
+  constructor(notionApiSecret: string, imagePrefix: string = "blog", options: { dryRun?: boolean } = {}) {
     this.notion = new Client({ auth: notionApiSecret });
     this.imagePrefix = imagePrefix;
-    this.uploader = R2ImageUploader.configured() ? new R2ImageUploader() : null;
+    this.dryRun = options.dryRun ?? false;
+    this.uploader = R2ImageUploader.configured() ? new R2ImageUploader({ dryRun: this.dryRun }) : null;
     if (!this.uploader) {
       console.log("⚠️  R2 credentials missing — new images will be skipped (kept as-is on Notion).");
+    }
+    if (this.dryRun) {
+      console.log("🔍 DRY RUN — images will be previewed but not uploaded, and Notion will not be modified.");
     }
   }
 
@@ -141,16 +146,20 @@ export class NotionImageProcessor {
         const uploadResult = await this.uploader.uploadExternal(imageUrl, this.imagePrefix, pageId);
 
         // 更新 Notion 块
-        await this.notion.blocks.update({
-          block_id: block.id,
-          image: {
-            external: { url: uploadResult.url },
-          },
-        });
+        if (this.dryRun) {
+          console.log(`🔍 [dry-run] would update block ${block.id} image → ${uploadResult.url}`);
+        } else {
+          await this.notion.blocks.update({
+            block_id: block.id,
+            image: {
+              external: { url: uploadResult.url },
+            },
+          });
+        }
 
         stats.processed++;
         console.log(
-          `✅ Image uploaded and updated: ${uploadResult.fileName} -> ${uploadResult.url}`,
+          `✅ Image ${this.dryRun ? "previewed" : "uploaded and updated"}: ${uploadResult.fileName} -> ${uploadResult.url}`,
         );
 
         // 添加延迟以避免频率限制
@@ -240,10 +249,16 @@ export class NotionImageProcessor {
 
     if (Object.keys(patchedProps).length === 0) return page;
 
-    await this.notion.pages.update({
-      page_id: page.id,
-      properties: patchedProps,
-    });
+    if (this.dryRun) {
+      console.log(
+        `🔍 [dry-run] would update Notion page ${page.id} properties: ${Object.keys(patchedProps).join(", ")}`,
+      );
+    } else {
+      await this.notion.pages.update({
+        page_id: page.id,
+        properties: patchedProps,
+      });
+    }
 
     return {
       ...page,

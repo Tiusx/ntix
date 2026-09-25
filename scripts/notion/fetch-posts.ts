@@ -4,6 +4,7 @@ import path from "node:path";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { NotionDatabaseFetcher, NotionFetcherConfig } from "./notion-fetcher";
 import { PostMetadata, SyncMode } from "./types";
+import { parseSyncArgs } from "../lib/cli";
 import {
   getTextProperty,
   getSelectProperty,
@@ -98,15 +99,14 @@ async function main() {
     );
   }
 
-  const syncMode: SyncMode = process.argv.includes("--force")
-    ? "force"
-    : process.argv.includes("--full-sync")
-      ? "full-sync"
-      : "incremental";
+  const args = parseSyncArgs();
+  const syncMode: SyncMode = args.force ? "force" : args.fullSync ? "full-sync" : "incremental";
 
-  const result = await new NotionDatabaseFetcher(postConfig, syncMode).fetch();
+  const result = await new NotionDatabaseFetcher(postConfig, syncMode, {
+    dryRun: args.dryRun,
+  }).fetch();
 
-  if (process.argv.includes("--strict") && result.errors > 0) {
+  if (args.strict && result.errors > 0) {
     console.error(`❌ Strict mode: ${result.errors} error(s) occurred.`);
     process.exit(1);
   }
