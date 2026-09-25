@@ -5,7 +5,7 @@
 #    （构建时会自动执行 prebuild 同步 memos）
 # 3. 可选：在 repository variables 添加 MEMOS_API 覆盖 memos API 地址（默认用 memos.tius.cn）
 
-name: Sync Memos and Posts
+name: Sync Memos, Posts and Pages
 
 on:
   schedule:
@@ -61,8 +61,8 @@ jobs:
           MEMOS_API: ${{ vars.MEMOS_API || 'https://memos.tius.cn/api/v1/memos' }}
         run: pnpm sync:memos:strict
 
-      - name: Sync posts from Notion
-        if: env.NOTION_API_SECRET != ''
+      - name: Sync posts & pages from Notion (sync:all)
+        if: env.NOTION_API_SECRET != '' && env.NOTION_PAGES_DATABASE_ID != ''
         env:
           NOTION_POSTS_DATABASE_ID: ${{ secrets.NOTION_POSTS_DATABASE_ID }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
@@ -73,19 +73,9 @@ jobs:
         run: |
           if [ "${{ steps.detect.outputs.full_sync }}" = "true" ]; then
             echo "🔄 Scheduled full-sync (daily cleanup)"
-            pnpm sync:posts:full:strict
+            pnpm sync:all:full:strict
           else
-            pnpm sync:posts:strict
-          fi
-
-      - name: Sync pages from Notion
-        if: env.NOTION_API_SECRET != '' && env.NOTION_PAGES_DATABASE_ID != ''
-        run: |
-          if [ "${{ steps.detect.outputs.full_sync }}" = "true" ]; then
-            echo "🔄 Scheduled full-sync (pages cleanup)"
-            pnpm sync:pages:full:strict
-          else
-            pnpm sync:pages:strict
+            pnpm sync:all:strict
           fi
 
       - name: Commit and push generated content
