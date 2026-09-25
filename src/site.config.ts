@@ -1,5 +1,3 @@
-export type ThemeKey = "nord" | "graphite" | "flax";
-
 export const SITE_CONFIG = {
   avatar: "/avatar.jpg",
   title: "Tiusx",
@@ -9,5 +7,4 @@ export const SITE_CONFIG = {
   siteUrl: process.env.SITE_URL || "https://tius.cn",
   feedPath: "/rss.xml",
   postsPerPage: 10,
-  theme: undefined as string | undefined,
 };

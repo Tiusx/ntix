@@ -1,18 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DARK_THEME, LIGHT_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 type Theme = "light" | "dark";
-
-const STORAGE_KEY = "ntix-theme";
-const LIGHT_THEME = "nord";
-const DARK_THEME = "graphite";
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
     const systemDark = window.matchMedia(
       "(prefers-color-scheme: dark)"
     ).matches;
@@ -32,7 +29,7 @@ export function ThemeToggle() {
     if (!theme) return;
     document.documentElement.dataset.theme =
       theme === "dark" ? DARK_THEME : LIGHT_THEME;
-    localStorage.setItem(STORAGE_KEY, theme);
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
   const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));

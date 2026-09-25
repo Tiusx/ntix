@@ -82,16 +82,30 @@ function readMemo(slug: string): Memo {
   return { ...normalizeMemo(data as Record<string, unknown>), content };
 }
 
+/**
+ * 全部 memos，按时间倒序。
+ * 缓存理由同 lib/posts.ts：静态导出时同一进程会多次取数。
+ */
+let allMemosCache: Memo[] | null = null;
+
 export function getAllMemos(): Memo[] {
-  if (!fs.existsSync(MEMOS_DIR)) return [];
+  if (allMemosCache) return allMemosCache;
+  if (!fs.existsSync(MEMOS_DIR)) {
+    allMemosCache = [];
+    return allMemosCache;
+  }
   const slugs = fs
     .readdirSync(MEMOS_DIR)
-    .filter((file) => file.endsWith(".md"))
+    .filter((file) => file.endsWith(".md") && !file.startsWith("_"))
     .map((file) => file.replace(/\.md$/, ""));
 
-  return slugs
+  allMemosCache = slugs
     .map(readMemo)
-    .sort((a, b) => (a.date < b.date ? 1 : -1));
+    .sort((a, b) => {
+      if (a.date === b.date) return 0;
+      return a.date < b.date ? 1 : -1;
+    });
+  return allMemosCache;
 }
 
 export function getMemosPage(page: number, pageSize: number): Memo[] {
@@ -116,18 +130,4 @@ export function getAllMemoTags(): string[] {
 
 export function getMemosByTag(tag: string): Memo[] {
   return getAllMemos().filter((memo) => memo.tags.includes(tag));
-}
-
-export function getMemosByTagPage(
-  tag: string,
-  page: number,
-  pageSize: number,
-): Memo[] {
-  const all = getMemosByTag(tag);
-  const start = (page - 1) * pageSize;
-  return all.slice(start, start + pageSize);
-}
-
-export function getMemosByTagPageCount(tag: string, pageSize: number): number {
-  return Math.max(1, Math.ceil(getMemosByTag(tag).length / pageSize));
 }

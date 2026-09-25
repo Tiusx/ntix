@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllPosts, getPostMeta } from "@/lib/posts";
-import { BackToPostsLink } from "@/components/back-to-posts-link";
+import { BackButton } from "@/components/back-button";
 import LightboxImage from "@/components/lightbox-image";
 import { GiscusComments } from "@/components/giscus-comments";
 import { SITE_CONFIG } from "@/site.config";
@@ -141,7 +141,7 @@ export default async function PostPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <BackToPostsLink />
+      <BackButton label="← 返回列表" />
 
       <article className="mt-8">
         <header>

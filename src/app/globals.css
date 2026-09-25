@@ -64,17 +64,7 @@ html[data-theme="graphite"] {
   --border: #3a3830;
 }
 
-html[data-theme="flax"] {
-  color-scheme: light;
 
-  --bg: #faf9f7;
-  --surface: #ffffff;
-  --fg: #292524;
-  --secondary: #57534e;
-  --muted: #a8a29e;
-  --accent: #18181b;
-  --border: #e7e5e4;
-}
 
 /* ─── Tailwind 语义色映射 ───────────────────────────────────────────── */
 

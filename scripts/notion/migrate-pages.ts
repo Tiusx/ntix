@@ -16,42 +16,40 @@ import { loadEnv, resolveDataSourceId } from "./utils";
 
 const PAGES_DIR = path.join(process.cwd(), "content", "pages");
 
-// 从 src/data/friends.ts 读取好友数据（简单解析 export const FRIENDS = [...]）
-function parseFriends(): Array<{ name: string; url: string; description?: string; avatar?: string }> {
-  const file = path.join(process.cwd(), "src", "data", "friends.ts");
-  const raw = fs.readFileSync(file, "utf-8");
-  const friends = [];
-  const re = /\{\s*name:\s*"([^"]*)",\s*url:\s*"([^"]*)",\s*description:\s*"([^"]*)",\s*avatar:\s*"([^"]*)"\s*\}/g;
-  let m;
-  while ((m = re.exec(raw)) !== null) {
-    friends.push({ name: m[1], url: m[2], description: m[3], avatar: m[4] });
-  }
-  return friends;
-}
+/**
+ * 读取 content/pages/ 下的全部 Markdown 作为迁移源。
+ * 友链等内容早已收口为 friends.md（由 Notion 自身管理），
+ * 因此不再从任何 TypeScript 源文件里正则刮取。
+ */
+function collectLocalPages(): Array<{
+  slug: string;
+  title: string;
+  description: string;
+  content: string;
+  comments: boolean;
+}> {
+  if (!fs.existsSync(PAGES_DIR)) return [];
+  const entries: Array<{
+    slug: string;
+    title: string;
+    description: string;
+    content: string;
+    comments: boolean;
+  }> = [];
 
-function buildFriendsMarkdown(): string {
-  const friends = parseFriends();
-  const lines = [
-    "# 友链",
-    "",
-    "收录的每一位好友，都值得去逛逛。",
-    "",
-    "## 好友列表",
-    "",
-  ];
-  for (const f of friends) {
-    lines.push(`- [${f.name}](${f.url})${f.description ? ` — ${f.description}` : ""}`);
+  for (const file of fs.readdirSync(PAGES_DIR).sort()) {
+    if (!file.endsWith(".md") || file.startsWith("_")) continue;
+    const { data, content } = matter(fs.readFileSync(path.join(PAGES_DIR, file), "utf-8"));
+    const slug = String(data.slug || file.replace(/\.md$/, ""));
+    entries.push({
+      slug,
+      title: String(data.title || slug),
+      description: String(data.description || ""),
+      content: content.trim(),
+      comments: data.comment === true || data.comment === "true",
+    });
   }
-  lines.push(
-    "",
-    "---",
-    "",
-    "## 申请友链",
-    "",
-    "欢迎交换友链，请提供**站点名称** + **链接** + **一句简介** + **头像 URL (可选)**，我会尽快审核并收录。",
-    "",
-  );
-  return lines.join("\n");
+  return entries;
 }
 
 async function slugExists(notion: Client, databaseId: string, slug: string): Promise<boolean> {
@@ -103,30 +101,12 @@ async function main() {
 
   const force = process.argv.includes("--force");
 
-  const entries: Array<{ slug: string; title: string; description: string; content: string; comments: boolean }> = [];
-
-  // about.md
-  const aboutFile = path.join(PAGES_DIR, "about.md");
-  if (fs.existsSync(aboutFile)) {
-    const raw = fs.readFileSync(aboutFile, "utf-8");
-    const { data, content } = matter(raw);
-    entries.push({
-      slug: "about",
-      title: String(data.title || "关于"),
-      description: String(data.description || ""),
-      content: content.trim(),
-      comments: false,
-    });
+  const entries = collectLocalPages();
+  if (entries.length === 0) {
+    console.log(`⚠️  No .md files found in ${PAGES_DIR} — nothing to import.`);
+    return;
   }
-
-  // friends
-  entries.push({
-    slug: "friends",
-    title: "友链",
-    description: "值得一去的好友与工具站点。",
-    content: buildFriendsMarkdown(),
-    comments: false,
-  });
+  console.log(`📚 Found ${entries.length} local page(s) to import`);
 
   let created = 0;
   let skipped = 0;

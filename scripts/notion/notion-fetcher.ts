@@ -30,9 +30,7 @@ export interface NotionFetcherConfig<T> {
   getLastFetchedTime(entry: T): string | null;
   getLastEditedTime(entry: T): string;
   generateContent(entry: T, content: string): string;
-  withLastFetchedTime(entry: T, time: string): T;
-  beforeGenerateContent?: (entry: T) => Promise<T>;
-}
+  withLastFetchedTime(entry: T, time: string): T;}
 
 const STATE_FILE = path.join(process.cwd(), ".fetch-state.json");
 
@@ -265,11 +263,7 @@ export class NotionDatabaseFetcher<T> {
         `📊 Images for ${identifier}: total=${imageStats.total}, processed=${imageStats.processed}, skipped=${imageStats.skipped}, errors=${imageStats.errors}`,
       );
     }
-
-    let finalEntry = this.config.withLastFetchedTime(updatedEntry, new Date().toISOString());
-    if (this.config.beforeGenerateContent) {
-      finalEntry = await this.config.beforeGenerateContent(finalEntry);
-    }
+    const finalEntry = this.config.withLastFetchedTime(updatedEntry, new Date().toISOString());
     const mdContent = this.config.generateContent(finalEntry, content);
     const filePath = path.join(this.config.outputDir, `${this.config.getFileKey(entry)}.md`);
 

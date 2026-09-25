@@ -71,7 +71,7 @@ export default async function BlogPage({
 
       <PostList posts={posts} dense page={current} />
 
-      <Pagination current={current} total={pageCount} />
+      <Pagination current={current} total={pageCount} basePath="/blog" />
     </main>
   );
 }

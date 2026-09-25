@@ -39,14 +39,22 @@ function readPage(slug: string): PageDoc | null {
   };
 }
 
+let allPagesCache: PageDoc[] | null = null;
+
+/** 缓存理由同 lib/posts.ts：静态导出时同进程会多次取数。 */
 export function getAllPages(): PageDoc[] {
-  if (!fs.existsSync(PAGES_DIR)) return [];
-  return fs
+  if (allPagesCache) return allPagesCache;
+  if (!fs.existsSync(PAGES_DIR)) {
+    allPagesCache = [];
+    return allPagesCache;
+  }
+  allPagesCache = fs
     .readdirSync(PAGES_DIR)
-    .filter((file) => file.endsWith(".md"))
+    .filter((file) => file.endsWith(".md") && !file.startsWith("_"))
     .map((file) => file.replace(/\.md$/, ""))
     .map((slug) => readPage(slug))
     .filter((page): page is PageDoc => page !== null);
+  return allPagesCache;
 }
 
 export function getPage(slug: string): PageDoc | null {

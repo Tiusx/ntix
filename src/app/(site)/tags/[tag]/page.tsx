@@ -77,7 +77,9 @@ export default async function TagPage({
         <PostList posts={posts} dense page={1} />
       </section>
 
-      {pageCount > 1 && <Pagination current={1} total={pageCount} />}
+      {pageCount > 1 && (
+        <Pagination current={1} total={pageCount} basePath={`/tags/${encodeURIComponent(name)}`} />
+      )}
     </main>
   );
 }

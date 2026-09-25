@@ -48,22 +48,45 @@ function readPost(slug: string): Post {
   return { slug, meta: normalizeMeta(data as Record<string, unknown>) };
 }
 
+/**
+ * 全部文章，按日期倒序。
+ * 结果缓存于模块级：静态导出时同一进程会反复调用（分页、分类、标签、
+ * sitemap、search-index 各自独立取数），不缓存会重复读盘并重复解析。
+ * 内容在构建期间不会变化，dev 下由模块热重载自然失效。
+ */
+let allPostsCache: Post[] | null = null;
+
 export function getAllPosts(): Post[] {
-  if (!fs.existsSync(POSTS_DIR)) return [];
+  if (allPostsCache) return allPostsCache;
+  if (!fs.existsSync(POSTS_DIR)) {
+    allPostsCache = [];
+    return allPostsCache;
+  }
   const slugs = fs
     .readdirSync(POSTS_DIR)
-    .filter((file) => file.endsWith(".md"))
+    .filter((file) => file.endsWith(".md") && !file.startsWith("_"))
     .map((file) => file.replace(/\.md$/, ""));
 
-  return slugs
+  allPostsCache = slugs
     .map(readPost)
     .filter((post) => post.meta.title && post.meta.date)
-    .sort((a, b) => (a.meta.date < b.meta.date ? 1 : -1));
+    .sort((a, b) => {
+      if (a.meta.date === b.meta.date) return 0;
+      return a.meta.date < b.meta.date ? 1 : -1;
+    });
+  return allPostsCache;
 }
 
 export function getPostMeta(slug: string): PostMeta | null {
   if (!postExists(slug)) return null;
   return readPost(slug).meta;
+}
+
+/** 文章正文（frontmatter 之后的 Markdown 原文），供 RSS 全文输出使用。 */
+export function getPostBody(slug: string): string {
+  const file = path.join(POSTS_DIR, `${slug}.md`);
+  if (!fs.existsSync(file)) return "";
+  return matter(fs.readFileSync(file, "utf-8")).content.trim();
 }
 
 export function getPostsPage(page: number, pageSize: number): Post[] {
@@ -88,6 +111,11 @@ export const CATEGORY_META: Record<string, string> = {
   其他: "放不进其他分类的内容。",
 };
 
+/**
+ * 分类的唯一注册表——分类是「规划中的 taxonomy」，即使当前 0 篇文章
+ * 也会生成页面并出现在 /columns/，因此它（而非文章里实际出现的分类）
+ * 才是导航与 sitemap 的依据。
+ */
 export const CATEGORY_META_KEYS = Object.keys(CATEGORY_META);
 
 export function getCategoryDescription(name: string): string {
@@ -111,8 +139,20 @@ function aggregate(values: string[][]): SectionEntry[] {
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "zh-CN"));
 }
 
-export function getAllCategories(): SectionEntry[] {
-  return aggregate(getAllPosts().map((post) => [post.meta.category]));
+/**
+ * 找出「文章里用了、但没在 CATEGORY_META 注册」的分类。
+ * 这类文章不会出现在 /columns/ 与 sitemap 中（导航以注册表为准），
+ * 因此构建期必须告警，否则会静默从站点结构中消失。
+ */
+export function getUnregisteredCategories(): string[] {
+  const unregistered = new Set<string>();
+  for (const post of getAllPosts()) {
+    const category = post.meta.category;
+    if (category && !Object.hasOwn(CATEGORY_META, category)) {
+      unregistered.add(category);
+    }
+  }
+  return [...unregistered].sort((a, b) => a.localeCompare(b, "zh-CN"));
 }
 
 export function getAllTags(): SectionEntry[] {

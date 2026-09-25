@@ -18,12 +18,10 @@ function postHref(slug: string, page?: number): string {
 export function PostList({
   posts,
   dense = false,
-  compact = false,
   page,
 }: {
   posts: Post[];
   dense?: boolean;
-  compact?: boolean;
   page?: number;
 }) {
   if (posts.length === 0) {
@@ -59,32 +57,6 @@ export function PostList({
                 </span>
               </span>
             </Link>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (compact) {
-    return (
-      <ul>
-        {posts.map((post) => (
-          <li
-            key={post.slug}
-            className="flex items-baseline justify-between gap-4 py-1.5"
-          >
-            <Link
-              href={postHref(post.slug, page)}
-              className="min-w-0 truncate text-[0.95rem] font-medium text-ink transition-colors hover:text-accent"
-            >
-              {post.meta.title}
-            </Link>
-            <time
-              dateTime={post.meta.date}
-              className="shrink-0 text-sm tabular-nums text-muted"
-            >
-              {post.meta.date}
-            </time>
           </li>
         ))}
       </ul>

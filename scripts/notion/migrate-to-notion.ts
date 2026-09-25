@@ -6,6 +6,7 @@ import { Client } from "@notionhq/client";
 import { markdownToBlocks } from "@tryfabric/martian";
 import matter from "gray-matter";
 import { loadEnv, resolveDataSourceId, sanitizeFileName } from "./utils";
+import { CATEGORY_META_KEYS } from "../../src/lib/posts";
 
 /**
  * 一次性迁移脚本：
@@ -17,7 +18,8 @@ import { loadEnv, resolveDataSourceId, sanitizeFileName } from "./utils";
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
 
 const STATUS_OPTIONS = ["Published", "Draft"];
-const CATEGORY_OPTIONS = ["开发", "生活", "随笔", "其他"];
+/** 分类白名单与站点侧注册表保持单一来源，避免两处漂移。 */
+const CATEGORY_OPTIONS = CATEGORY_META_KEYS;
 
 interface LocalPost {
   file: string;
@@ -163,14 +165,9 @@ async function main() {
   for (const post of posts) {
     try {
       const exists = await slugExists(notion, databaseId, post.slug);
-      if (exists && !force) {
-        skipped++;
-        console.log(`⏭️  Skipped existing: ${post.slug}`);
-        continue;
-      }
-      if (exists && force) {
-        // Notion page 属性无法直接覆盖，这里跳过已存在的（提示手动处理或先删）
-        console.warn(`⚠️  ${post.slug} already exists; use --force-at to delete then re-run.`);
+      if (exists) {
+        // Notion page 属性无法直接覆盖，需先在 Notion 中删除该行再重跑
+        console.warn(`⚠️  ${post.slug} 已存在，跳过。如需覆盖请先在 Notion 中删除该行再重跑。`);
         skipped++;
         continue;
       }

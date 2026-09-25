@@ -17,7 +17,11 @@ export function generateStaticParams() {
       params.push({ tag: name, page: String(p) });
     }
   }
-  // 兜底：若无标签需要分页，仍生成第一个标签的第 2 页占位
+  // 兜底占位：Next.js 在 output:"export" 下要求动态路由的 generateStaticParams()
+  // 不能返回空数组，否则构建直接失败。
+  // 由于 dynamicParams=false，该占位参数就是本路由唯一可达的越界 URL。
+  // 页面组件对越界情况渲染「全部文章 + canonical 指向第 1 页」而不是 notFound()——
+  // 后者在静态导出下只会产出 Next 内置的 __next_error__ 空壳（无任何可见内容）。
   if (params.length === 0 && allTags.length > 0) {
     params.push({ tag: allTags[0].name, page: "2" });
   }
@@ -26,7 +30,7 @@ export function generateStaticParams() {
       params.map(({ tag, page }) => ({
         tag: encodeURIComponent(tag),
         page,
-      }))
+      })),
     );
   }
   return params;
@@ -40,22 +44,28 @@ export async function generateMetadata({
   const { tag, page } = await params;
   const name = decodeURIComponent(tag);
   const current = Number(page);
+  const pageCount = getPostsByTagPageCount(name, SITE_CONFIG.postsPerPage);
+  const outOfRange = !Number.isInteger(current) || current < 2 || current > pageCount;
   const baseUrl = SITE_CONFIG.siteUrl;
-  const canonical = `${baseUrl}/tags/${encodeURIComponent(name)}/${current}/`;
+  // 越界页 canonical 回指第 1 页，避免被索引为重复内容
+  const canonical = `${baseUrl}/tags/${encodeURIComponent(name)}/${outOfRange ? "" : `${current}/`}`;
+  const description = outOfRange
+    ? `#${name} 标签下的全部文章`
+    : `标签 "${name}" 第 ${current} 页`;
   return {
-    title: `#${name} · 第 ${current} 页`,
-    description: `标签 "${name}" 第 ${current} 页`,
+    title: `#${name}`,
+    description,
     alternates: { canonical },
     openGraph: {
-      title: `#${name} · 第 ${current} 页`,
-      description: `标签 "${name}" 第 ${current} 页`,
+      title: `#${name} · 标签`,
+      description,
       type: "website",
       url: canonical,
     },
     twitter: {
       card: "summary",
-      title: `#${name} · 第 ${current} 页`,
-      description: `标签 "${name}" 第 ${current} 页`,
+      title: `#${name} · 标签`,
+      description,
     },
     robots: {
       index: true,
@@ -72,14 +82,20 @@ export default async function TagPage({
   const { tag, page } = await params;
   const name = decodeURIComponent(tag);
   const current = Number(page);
-  const pageCount = getPostsByTagPageCount(name, SITE_CONFIG.postsPerPage);
 
-  if (!Number.isInteger(current) || current < 2 || current > pageCount) {
+  if (!Number.isInteger(current) || current < 2) {
     notFound();
   }
 
   const allPosts = getPostsByTag(name);
-  const posts = getPostsByTagPage(name, current, SITE_CONFIG.postsPerPage);
+  if (allPosts.length === 0) notFound();
+
+  const pageCount = getPostsByTagPageCount(name, SITE_CONFIG.postsPerPage);
+  const outOfRange = current > pageCount;
+  // 越界时展示全部文章（见 generateStaticParams 中的说明）
+  const posts = outOfRange
+    ? allPosts
+    : getPostsByTagPage(name, current, SITE_CONFIG.postsPerPage);
 
   return (
     <main className="content pt-12 pb-12">
@@ -92,11 +108,23 @@ export default async function TagPage({
         <p className="mt-2 text-sm text-muted">{allPosts.length} 篇</p>
       </header>
 
+      {outOfRange && (
+        <p className="mt-6 border border-dashed border-line rounded-md px-4 py-3 text-sm text-muted">
+          该标签只有 {pageCount} 页，已显示全部文章。
+        </p>
+      )}
+
       <section className="pt-4">
         <PostList posts={posts} dense page={current} />
       </section>
 
-      <Pagination current={current} total={pageCount} />
+      {pageCount > 1 && !outOfRange && (
+        <Pagination
+          current={current}
+          total={pageCount}
+          basePath={`/tags/${encodeURIComponent(name)}`}
+        />
+      )}
     </main>
   );
 }

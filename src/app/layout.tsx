@@ -3,6 +3,7 @@ import { SITE_CONFIG } from "@/site.config";
 import { LightboxProvider } from "@/components/lightbox-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BackToTop } from "@/components/back-to-top";
+import { LIGHT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -49,8 +50,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={SITE_CONFIG.lang} data-theme={SITE_CONFIG.theme}>
+    <html lang={SITE_CONFIG.lang} data-theme={LIGHT_THEME} suppressHydrationWarning>
       <head>
+        {/* 首屏前同步应用主题，避免刷新闪烁。必须内联且同步执行。 */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <meta name="msvalidate.01" content="A843521F93A928CA1E8449B430ACD311" />
         <meta name="baidu-site-verification" content="codeva-HJxCyZSxvz" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

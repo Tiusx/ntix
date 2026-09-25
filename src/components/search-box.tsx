@@ -99,9 +99,9 @@ export function SearchBox() {
           className="w-full rounded-lg border border-line bg-card px-4 py-2.5 pr-16 text-sm text-ink placeholder-muted outline-none transition-colors focus:border-accent"
           autoFocus
         />
-        <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-line bg-muted/10 px-1.5 py-0.5 font-mono text-[11px] text-muted">
-          /
-        </kbd>
+          <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-line bg-muted/10 px-1.5 py-0.5 font-mono text-[11px] text-muted">
+            Ctrl K
+          </kbd>
       </div>
 
       <div className="mt-8">

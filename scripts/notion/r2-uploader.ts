@@ -194,11 +194,3 @@ export class R2ImageUploader {
   }
 }
 
-/** 创建 R2 图片上传器实例（构造时即校验环境变量）。 */
-export const r2ImageUploader = (): R2ImageUploader => new R2ImageUploader();
-
-/** 在抓取脚本入口处校验 R2 配置是否就绪，并打印当前图床。 */
-export function ensureImageUploaderConfigured(): void {
-  r2ImageUploader();
-  console.log(`🖼️ Image uploader in use: r2 (bucket=${R2_BUCKET}, domain=${R2_PUBLIC_DOMAIN})`);
-}

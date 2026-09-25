@@ -1,1 +1,0 @@
-export { BackButton as BackToPostsLink } from "@/components/back-button";
