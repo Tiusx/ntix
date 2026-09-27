@@ -27,11 +27,38 @@ describe("SITE_CONFIG", () => {
     expect(SITE_CONFIG.metaDescription.length).toBeGreaterThanOrEqual(DESCRIPTION_MIN);
   });
 
-  it("metaDescription 点明站内实际的主要内容方向", () => {
-    // 刻意断言「真实存在的技术栈」而不是「博客」这类空词：
-    // 若日后文章方向变了而描述没跟着改，这里会失败。
-    for (const kw of ["PHP", "Linux", "Docker", "MySQL", "Nginx"]) {
+  it("metaDescription 点明主力语言与内容方向", () => {
+    // 主力语言是 PHP 与 Golang；描述要能让访客点进来后看到相符的东西。
+    for (const kw of ["PHP", "Golang", "后端"]) {
       expect(SITE_CONFIG.metaDescription, kw).toContain(kw);
+    }
+  });
+
+  it("metaDescription 围绕品牌词", () => {
+    for (const kw of ["小石头", "Tiusx", "技术分享", "博客"]) {
+      expect(SITE_CONFIG.metaDescription, kw).toContain(kw);
+    }
+  });
+
+  it("metaDescription 不含个人信息（城市 / 出生年份）", () => {
+    // 属个人信息：会被各类聚合站直接翻出来，也不构成任何搜索价值。
+    for (const banned of ["无锡", "90 后", "90后", "苏州", "上海", "杭州"]) {
+      expect(SITE_CONFIG.metaDescription, `不应出现「${banned}」`).not.toContain(banned);
+    }
+  });
+
+  it("keywords 以品牌词开头", () => {
+    expect(SITE_CONFIG.keywords.slice(0, 4)).toEqual([
+      "小石头博客",
+      "Tiusx",
+      "Tius",
+      "小石头",
+    ]);
+  });
+
+  it("keywords 覆盖品牌词与主力语言", () => {
+    for (const kw of ["技术分享", "PHP", "Golang"]) {
+      expect(SITE_CONFIG.keywords, kw).toContain(kw);
     }
   });
 
