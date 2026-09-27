@@ -41,6 +41,9 @@ yarn-error.log*
 /public/search-index.json
 /public/og/
 
+# IndexNow 提交指纹（本地生成；CI 用 actions/cache 保留）
+/.indexnow-state.json
+
 # vercel
 .vercel
 

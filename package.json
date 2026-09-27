@@ -43,6 +43,8 @@
     "sync:pages:dry": "tsx scripts/notion/fetch-pages.ts --full-sync --dry-run",
     "migrate:pages": "tsx scripts/notion/migrate-pages.ts",
     "submit:indexnow": "tsx scripts/submit-indexnow.ts",
+    "submit:indexnow:list": "tsx scripts/submit-indexnow.ts --list",
+    "submit:indexnow:all": "tsx scripts/submit-indexnow.ts --all",
     "migrate:notion": "tsx scripts/notion/migrate-to-notion.ts"
   },
   "dependencies": {

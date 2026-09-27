@@ -109,8 +109,34 @@ jobs:
           git commit -m "chore(content): sync memos, posts and pages"
           git push origin main
 
-      - name: Submit IndexNow URLs (Bing/Google priority indexing)
-        if: env.INDEXNOW_KEY != ''
+      # IndexNow 提交依赖上一次的结果来判断「哪些 URL 变了」，
+      # 而 runner 每次都是全新的，因此用 cache 跨运行保留指纹文件。
+      - name: Restore IndexNow state
+        uses: actions/cache/restore@v4
+        with:
+          path: .indexnow-state.json
+          key: indexnow-state-${{ github.run_id }}
+          restore-keys: |
+            indexnow-state-
+
+      - name: Submit IndexNow URLs (Bing/Google 主动收录)
+        if: always() && env.INDEXNOW_KEY != ''
         env:
           SITE_URL: ${{ vars.SITE_URL || 'https://tius.cn' }}
         run: pnpm submit:indexnow
+
+      - name: Warn when IndexNow is not configured
+        # 缺 key 时 GitHub 只会把 secret 求值为空串，步骤被静默跳过、job 仍显示绿色。
+        # 这里显式告警，避免「以为在提交、其实从没提交过」。
+        if: always() && env.INDEXNOW_KEY == ''
+        run: |
+          echo "::warning title=IndexNow 未启用::缺少 INDEXNOW_KEY secret，本次未提交任何 URL。请在仓库 Settings → Secrets and variables → Actions 中添加 INDEXNOW_KEY（内容需与 public/indexnow-key-<KEY>.txt 一致）。"
+          echo "可用 pnpm submit:indexnow:list 本地预览将要提交的 URL。"
+          pnpm submit:indexnow:list || true
+
+      - name: Save IndexNow state
+        if: always() && env.INDEXNOW_KEY != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .indexnow-state.json
+          key: indexnow-state-${{ github.run_id }}

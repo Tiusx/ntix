@@ -1,14 +1,25 @@
-import { CATEGORY_META_KEYS, getAllPosts, getAllTags, getUnregisteredCategories } from "@/lib/posts";
-import { getAllPages } from "@/lib/pages";
+import { getAllPosts } from "@/lib/posts";
+import {
+  categoryRoutePaths,
+  pageRoutePaths,
+  paginatedRoutePaths,
+  postRoutePaths,
+  staticRoutePaths,
+  tagRoutePaths,
+} from "@/lib/routes";
+import { getUnregisteredCategories } from "@/lib/posts";
 import { SITE_CONFIG } from "@/site.config";
 
 export const dynamic = "force-static";
 
+/**
+ * 路由清单来自 src/lib/routes.ts，与 IndexNow 提交脚本共用同一来源，
+ * 避免出现「sitemap 收录了但从不主动推送」的页面。
+ */
 export default function sitemap() {
   const posts = getAllPosts();
-  const tags = getAllTags();
-
   const baseUrl = SITE_CONFIG.siteUrl;
+  const pageSize = SITE_CONFIG.postsPerPage;
 
   // 分类是「规划中的 taxonomy」：以 CATEGORY_META_KEYS 为准而非文章实际用到的分类，
   // 否则 0 文章的规划分类会被生成、被 /columns/ 内链，却不进 sitemap。
@@ -20,50 +31,50 @@ export default function sitemap() {
     );
   }
 
-  const staticRoutes = [
-    "",
-    "/archive/",
-    "/blog/",
-    "/categories/",
-    "/columns/",
-    "/memos/",
-    "/search/",
-    "/tags/",
-    "/rss.xml",
-  ].map((route) => ({
+  const staticRoutes = staticRoutePaths().map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
     changeFrequency: "weekly" as const,
-    priority: route === "" ? 1 : 0.8,
+    priority: route === "/" ? 1 : 0.8,
   }));
 
-  const pageRoutes = getAllPages().map((page) => ({
-    url: `${baseUrl}/pages/${encodeURIComponent(page.slug)}/`,
+  const pageRoutes = pageRoutePaths().map((p) => ({
+    url: `${baseUrl}${p}`,
     lastModified: new Date(),
     changeFrequency: "monthly" as const,
     priority: 0.6,
   }));
 
-  const postRoutes = posts.map((post) => ({
-    url: `${baseUrl}/posts/${encodeURIComponent(post.slug)}/`,
-    lastModified: new Date(post.meta.date),
+  const postRoutes = postRoutePaths().map((p, i) => ({
+    url: `${baseUrl}${p}`,
+    lastModified: new Date(posts[i]?.meta.date ?? new Date()),
     changeFrequency: "monthly" as const,
     priority: 0.7,
   }));
 
-  const categoryRoutes = CATEGORY_META_KEYS.map((name) => ({
-    url: `${baseUrl}/categories/${encodeURIComponent(name)}/`,
+  const categoryRoutes = categoryRoutePaths().map((p) => ({
+    url: `${baseUrl}${p}`,
     lastModified: new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }));
 
-  const tagRoutes = tags.map((tag) => ({
-    url: `${baseUrl}/tags/${encodeURIComponent(tag.name)}/`,
+  const tagRoutes = tagRoutePaths().map((p) => ({
+    url: `${baseUrl}${p}`,
     lastModified: new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.5,
   }));
 
-  return [...staticRoutes, ...pageRoutes, ...postRoutes, ...categoryRoutes, ...tagRoutes];
+  // 分页页：低优先级，但既然 sitemap 收录了就应该一并被 IndexNow 推送。
+  // 直接取 paginatedRoutePaths()，不再自行过滤——早期用正则过滤时漏掉了
+  // /blog/2/ 这类只有两段的路径。
+  const paginated = paginatedRoutePaths(pageSize).map((p) => ({
+    url: `${baseUrl}${p}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.3,
+  }));
+
+  return [...staticRoutes, ...pageRoutes, ...postRoutes, ...categoryRoutes, ...tagRoutes, ...paginated];
 }

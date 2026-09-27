@@ -100,7 +100,8 @@ describe("分类注册表与文档一致", () => {
 describe("IndexNow key 路径三处一致", () => {
   it("代码、.env.example 与 public/ 实际文件一致", () => {
     const idx = read("scripts/submit-indexnow.ts");
-    const m = idx.match(/keyLocation = `https:\/\/\$\{host\}\/([^`$]+)\$\{key\}/);
+    // keyLocation 现在写在请求 body 里，形如 keyLocation: `https://${host}/<pattern>${key}.txt`
+    const m = idx.match(/keyLocation:?\s*`https:\/\/\$\{host\}\/([^`$]+)\$\{key\}/);
     expect(m, "未能解析 keyLocation").not.toBeNull();
     const pattern = m![1];
 
