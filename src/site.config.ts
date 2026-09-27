@@ -4,11 +4,16 @@ export const SITE_CONFIG = {
   /** 首页展示用的引言，不是 SEO 描述 */
   description: "照进黑暗中的那束光为救赎",
   /**
-   * SEO 用的站点描述。中文建议 40-70 字（对应搜索结果里约 2-3 行）。
-   * 刻意与上面的引言分开：那句诗太短，当 description 会被判定为内容单薄。
+   * SEO 用的站点描述，取自 /pages/about/ 的自我介绍。
+   * 中文约 60 个汉字（显示宽度 120），正好落在搜索结果不截断的区间；
+   * 过短会被判内容单薄，过长则被截断。
+   *
+   * 技术方向刻意贴合站内实际文章与标签的构成（Linux / Docker / MySQL /
+   * Nginx / PHP 居多），而不是把 about 里列了但站内几乎没有内容的 Golang
+   * 放在前面——描述要能让访客点进来后看到相符的东西。
    */
   metaDescription:
-    "Tiusx 的个人技术博客，记录后端与运维实践、部署踩坑、开发工具与生活随笔。文章主要围绕 Linux、Docker、Nginx、MySQL、Cloudflare 等主题。",
+    "Tius，90 后程序员，现居无锡。写 PHP 与 Python 后端，也常年折腾 Linux、Docker、MySQL、Nginx。十年间踩过的坑，都记在这里。",
   tagline: "凡是过往，皆为序章",
   lang: "zh-CN",
   siteUrl: process.env.SITE_URL || "https://tius.cn",

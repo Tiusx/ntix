@@ -27,10 +27,27 @@ describe("SITE_CONFIG", () => {
     expect(SITE_CONFIG.metaDescription.length).toBeGreaterThanOrEqual(DESCRIPTION_MIN);
   });
 
-  it("metaDescription 覆盖主要主题", () => {
-    for (const kw of ["博客", "运维", "后端"]) {
+  it("metaDescription 点明站内实际的主要内容方向", () => {
+    // 刻意断言「真实存在的技术栈」而不是「博客」这类空词：
+    // 若日后文章方向变了而描述没跟着改，这里会失败。
+    for (const kw of ["PHP", "Linux", "Docker", "MySQL", "Nginx"]) {
       expect(SITE_CONFIG.metaDescription, kw).toContain(kw);
     }
+  });
+
+  it("metaDescription 长度落在搜索结果不被截断的区间", () => {
+    // 按显示宽度估算：中文/全角标点算 2，ASCII 算 1。
+    // 搜索结果大约展示 50-60 个汉字（约 100-120 宽度）。
+    const width = [...SITE_CONFIG.metaDescription].reduce(
+      (w, c) =>
+        w +
+        (/[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]/.test(c)
+          ? 2
+          : 1),
+      0,
+    );
+    expect(width, `实际显示宽度 ${width}`).toBeGreaterThanOrEqual(95);
+    expect(width, `实际显示宽度 ${width}`).toBeLessThanOrEqual(135);
   });
 
   it("keywords 非空且去重", () => {
