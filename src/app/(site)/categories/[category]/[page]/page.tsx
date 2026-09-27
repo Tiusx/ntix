@@ -1,4 +1,4 @@
-import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
+import { ogDefaultImage, withRssCanonical, buildKeywords } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
@@ -57,12 +57,16 @@ export async function generateMetadata({
   const outOfRange = !Number.isInteger(current) || current < 2 || current > pageCount;
   // 越界页 canonical 回指第 1 页，避免被索引为重复内容
   const canonical = `${baseUrl}/categories/${encodeURIComponent(name)}/${outOfRange ? "" : `${current}/`}`;
+  const count = getPostsByCategory(name).length;
   const description = outOfRange
-    ? categoryDescription || `${name} 分类下的全部文章`
-    : `${name} 分类第 ${current} 页${categoryDescription ? ` · ${categoryDescription}` : ""}`;
+    ? categoryDescription
+      ? `Tiusx 博客「${name}」分类下的全部文章。${categoryDescription}`
+      : `Tiusx 博客「${name}」分类下的全部文章。`
+    : `Tiusx 博客「${name}」分类文章第 ${current} / ${pageCount} 页${categoryDescription ? `。${categoryDescription}` : ""}，共 ${count} 篇。`;
   return {
     title: `${name} · 第 ${current} 页`,
     description,
+    keywords: buildKeywords([name, `${name}分类`]),
     alternates: withRssCanonical(canonical),
     openGraph: {
       title: `${name} · 第 ${current} 页`,

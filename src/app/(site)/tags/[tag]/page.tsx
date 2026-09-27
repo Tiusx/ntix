@@ -1,4 +1,4 @@
-import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
+import { ogDefaultImage, withRssCanonical, buildKeywords } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllTags, getPostsByTag, getPostsByTagPage, getPostsByTagPageCount } from "@/lib/posts";
@@ -28,13 +28,15 @@ export async function generateMetadata({
   const name = decodeURIComponent(tag);
   const baseUrl = SITE_CONFIG.siteUrl;
   const canonical = `${baseUrl}/tags/${encodeURIComponent(name)}/`;
+  const description = `Tiusx 博客中标记为「${name}」的全部文章，涵盖该主题下的实践记录、问题排查与经验总结。`;
   return {
     title: `#${name}`,
-    description: `标签 "${name}" 下的文章`,
+    description,
+    keywords: buildKeywords([name, `${name}教程`]),
     alternates: withRssCanonical(canonical),
     openGraph: {
       title: `#${name} · 标签`,
-      description: `标签 "${name}" 下的文章`,
+      description,
         type: "website",
         url: canonical,
         images: ogDefaultImage(),
@@ -42,7 +44,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary",
       title: `#${name} · 标签`,
-      description: `标签 "${name}" 下的文章`,
+      description,
     },
     robots: {
       index: true,

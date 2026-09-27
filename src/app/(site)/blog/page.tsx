@@ -1,4 +1,4 @@
-import { withRssCanonical, ogDefaultImage } from "@/lib/seo";
+import { withRssCanonical, ogDefaultImage, buildKeywords } from "@/lib/seo";
 import type { Metadata } from "next";
 import { getAllPosts, getPostPageCount, getPostsPage } from "@/lib/posts";
 import { PostList } from "@/components/post-list";
@@ -7,18 +7,20 @@ import { SITE_CONFIG } from "@/site.config";
 
 export const metadata: Metadata = {
   title: "文章",
-  description: "技术笔记、开发实录与思考记录",
+  description:
+    "Tiusx 博客的全部技术文章：后端与运维实践、部署踩坑记录、开发工具使用，以及生活随笔。按时间倒序排列，支持分页浏览。",
+  keywords: buildKeywords(["文章", "技术文章", "博文"]),
   alternates: withRssCanonical("/blog/"),
   openGraph: {
     title: "文章列表",
-    description: "技术笔记、开发实录与思考记录",
+    description: SITE_CONFIG.metaDescription,
     url: "/blog/",
     images: ogDefaultImage(),
   },
   twitter: {
     card: "summary",
     title: "文章列表",
-    description: "技术笔记、开发实录与思考记录",
+    description: SITE_CONFIG.metaDescription,
   },
 };
 

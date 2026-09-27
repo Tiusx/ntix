@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllMemoTags, getMemosByTag } from "@/lib/memos";
 import { MemosFeed } from "@/components/memos-feed";
+import { buildKeywords, withRssCanonical } from "@/lib/seo";
 
 export const dynamicParams = false;
 
@@ -22,7 +23,13 @@ export async function generateMetadata({
   params: Promise<{ tag: string }>;
 }): Promise<Metadata> {
   const { tag } = await params;
-  return { title: `#${decodeURIComponent(tag)}` };
+  const name = decodeURIComponent(tag);
+  return {
+    title: `#${name}`,
+    description: `Tiusx 说说中标记为「${name}」的碎片记录：随手的读书笔记、行程见闻、生活片段与偶尔的技术想法。`,
+    keywords: buildKeywords([name, "说说", "memos"]),
+    alternates: withRssCanonical(`/memos/tag/${encodeURIComponent(name)}/`),
+  };
 }
 
 export default async function MemosTagPage({

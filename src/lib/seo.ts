@@ -38,3 +38,43 @@ export const ogDefaultImage = () => ({
   height: 630,
   alt: SITE_CONFIG.title,
 });
+
+/**
+ * 拼装 <meta name="keywords">。
+ *
+ * ⚠️ 重要前提：keywords 自 Google 2009 年起就不再参与排名，Bing / 百度同样忽略。
+ * 保留它是因为部分 SEO 审计工具与社交平台仍会读取，成本极低；
+ * 但真正影响搜索结果的是 title 与 description，不要在这里花太多精力。
+ *
+ * 页面级关键词应传入「该页特有的词」（文章标签、分类名、标签名），
+ * 站点基础词由本函数自动带上。
+ */
+export const buildKeywords = (extra: string[] = []): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const k of [...extra, ...SITE_CONFIG.keywords]) {
+    const t = k.trim();
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+};
+
+/** 文章页关键词：分类 + 标签 + 站点词。 */
+export const postKeywords = (category: string, tags: string[]): string[] =>
+  buildKeywords([...tags, category].filter(Boolean));
+
+/**
+ * SEO 描述的中文长度建议区间。
+ * 搜索结果通常展示 50-60 个全角字符左右，过短会被判内容单薄，
+ * 过长则会被截断——两者都不利于点击率。
+ */
+export const DESCRIPTION_MIN = 40;
+export const DESCRIPTION_MAX = 160;
+
+/** 描述过短时回退到站点描述，避免输出明显单薄的 meta。 */
+export const descriptionOrSite = (desc: string | undefined): string => {
+  const t = (desc ?? "").trim();
+  return t.length >= DESCRIPTION_MIN ? t : SITE_CONFIG.metaDescription;
+};

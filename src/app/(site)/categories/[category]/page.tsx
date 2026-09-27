@@ -1,4 +1,4 @@
-import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
+import { ogDefaultImage, withRssCanonical, buildKeywords } from "@/lib/seo";
 import type { Metadata } from "next";
 import {
   CATEGORY_META_KEYS,
@@ -37,10 +37,18 @@ export async function generateMetadata({
   const name = decodeURIComponent(category);
   const baseUrl = SITE_CONFIG.siteUrl;
   const canonical = `${baseUrl}/categories/${encodeURIComponent(name)}/`;
-  const description = getCategoryDescription(name) || `${name} 分类下的文章`;
+  const catDesc = getCategoryDescription(name);
+  const count = getPostsByCategory(name).length;
+  const description =
+    catDesc && count > 0
+      ? `Tiusx 博客「${name}」分类下的 ${count} 篇文章。${catDesc}`
+      : catDesc
+        ? `Tiusx 博客规划的「${name}」分类，收录${catDesc}目前该分类下暂无文章，后续会陆续补充。`
+        : `Tiusx 博客「${name}」分类下的全部文章，共 ${count} 篇。`;
   return {
     title: name,
     description,
+    keywords: buildKeywords([name, `${name}分类`]),
     alternates: withRssCanonical(canonical),
     openGraph: {
       title: `${name} · 分类`,

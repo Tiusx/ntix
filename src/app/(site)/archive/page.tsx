@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllPosts, type Post } from "@/lib/posts";
+import { buildKeywords, withRssCanonical } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Archive",
+  title: "归档",
+  description:
+    "按时间倒序排列的全部文章归档，可按年月浏览 Tiusx 博客的所有技术笔记、开发实录与随笔。",
+  keywords: buildKeywords(["归档", "文章列表", "时间线"]),
+  alternates: withRssCanonical("/archive/"),
 };
 
 interface Item {

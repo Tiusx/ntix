@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
 import { getAllPages, getPage } from "@/lib/pages";
-import { withRssCanonical } from "@/lib/seo";
+import { withRssCanonical, buildKeywords, descriptionOrSite } from "@/lib/seo";
 import { GiscusComments } from "@/components/giscus-comments";
 import { SITE_CONFIG } from "@/site.config";
 
@@ -86,7 +86,11 @@ export async function generateMetadata({
 
   return {
     title: page.title || SITE_CONFIG.title,
-    description: page.description || SITE_CONFIG.description,
+    // descriptionOrSite 会在 Notion 里没写 description 或写得过短时回退到
+    // metaDescription。此处原先回退到 SITE_CONFIG.description——那是首页展示用的
+    // 那句诗（12 字），直接当 SEO 描述会被判定为内容单薄。
+    description: descriptionOrSite(page.description),
+    keywords: buildKeywords([page.title].filter(Boolean)),
     alternates: withRssCanonical(`${SITE_CONFIG.siteUrl}/pages/${page.slug}/`),
   };
 }

@@ -6,9 +6,14 @@ import {
   getAllTags,
   getPostsCountByCategory,
 } from "@/lib/posts";
+import { buildKeywords, withRssCanonical } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Columns",
+  title: "栏目",
+  description:
+    "Tiusx 博客的分类与标签总览：按分类浏览开发、生活、随笔等主题，或按标签浏览 Linux、Docker、Nginx、Cloudflare 等具体技术。",
+  keywords: buildKeywords(["栏目", "分类", "标签", "导航"]),
+  alternates: withRssCanonical("/columns/"),
 };
 
 export default function ColumnsPage() {

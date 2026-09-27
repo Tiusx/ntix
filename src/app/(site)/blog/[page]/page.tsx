@@ -1,4 +1,4 @@
-import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
+import { ogDefaultImage, withRssCanonical, buildKeywords } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllPosts, getPostPageCount, getPostsPage } from "@/lib/posts";
@@ -25,13 +25,16 @@ export async function generateMetadata({
   const current = Number(page);
   const baseUrl = SITE_CONFIG.siteUrl;
   const canonical = current === 1 ? `${baseUrl}/blog/` : `${baseUrl}/blog/${current}/`;
+  const total = getPostPageCount(SITE_CONFIG.postsPerPage);
+  const description = `Tiusx 技术博客文章第 ${current} / ${total} 页：后端与运维实践、部署踩坑记录、开发工具与生活随笔，按时间倒序排列。`;
   return {
     title: `文章 · 第 ${current} 页`,
-    description: `文章列表第 ${current} 页，共 ${getPostPageCount(SITE_CONFIG.postsPerPage)} 页`,
+    description,
+    keywords: buildKeywords(["文章", "技术文章", "分页"]),
     alternates: withRssCanonical(canonical),
     openGraph: {
       title: `文章列表 · 第 ${current} 页`,
-      description: `文章列表第 ${current} 页`,
+      description,
         type: "website",
         url: canonical,
         images: ogDefaultImage(),
@@ -39,7 +42,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary",
       title: `文章列表 · 第 ${current} 页`,
-      description: `文章列表第 ${current} 页`,
+      description,
     },
     robots: {
       index: true,

@@ -1,17 +1,19 @@
-import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
+import { ogDefaultImage, withRssCanonical, buildKeywords } from "@/lib/seo";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { SITE_CONFIG } from "@/site.config";
 import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
+  // 首页不单独写 title/description，直接继承 root layout 的
+  keywords: buildKeywords(),
   alternates: withRssCanonical("/"),
   openGraph: {
     type: "website",
     locale: "zh_CN",
     siteName: SITE_CONFIG.title,
     title: SITE_CONFIG.title,
-      description: SITE_CONFIG.description,
+      description: SITE_CONFIG.metaDescription,
       url: SITE_CONFIG.siteUrl,
       images: ogDefaultImage(),
   },

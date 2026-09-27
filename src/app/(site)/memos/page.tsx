@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllMemos, getMemosPage, getMemosPageCount } from "@/lib/memos";
 import { MemosFeed } from "@/components/memos-feed";
+import { buildKeywords, withRssCanonical } from "@/lib/seo";
 
 const MEMOS_PER_PAGE = 20;
 
 export const metadata: Metadata = {
   title: "说说",
-  description: "我的日常碎片和随口说说。",
+  description:
+    "Tiusx 的日常碎片与随手记录：读书、行程、踩坑与生活片段。较正式的技术内容会整理成文章发布，这里保留更随手、更短篇的部分。",
+  keywords: buildKeywords(["说说", "memos", "动态", "碎碎念", "生活记录"]),
+  alternates: withRssCanonical("/memos/"),
 };
 
 function MemosPagination({ current }: { current: number }) {

@@ -1,4 +1,4 @@
-import { withRssCanonical } from "@/lib/seo";
+import { withRssCanonical, postKeywords, descriptionOrSite } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -53,11 +53,12 @@ export async function generateMetadata({
   if (!meta) return { title: "未找到" };
 
   const url = `${SITE_CONFIG.siteUrl}/posts/${encodeURIComponent(meta.slug)}/`;
-  const description = meta.summary || meta.title;
+  const description = descriptionOrSite(meta.summary) ;
 
   return {
     title: meta.title,
     description,
+    keywords: postKeywords(meta.category, meta.tags),
     alternates: withRssCanonical(url),
     openGraph: {
       type: "article",

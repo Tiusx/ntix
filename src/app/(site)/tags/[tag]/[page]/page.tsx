@@ -1,4 +1,4 @@
-import { ogDefaultImage, withRssCanonical } from "@/lib/seo";
+import { ogDefaultImage, withRssCanonical, buildKeywords } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllTags, getPostsByTag, getPostsByTagPage, getPostsByTagPageCount } from "@/lib/posts";
@@ -51,11 +51,12 @@ export async function generateMetadata({
   // 越界页 canonical 回指第 1 页，避免被索引为重复内容
   const canonical = `${baseUrl}/tags/${encodeURIComponent(name)}/${outOfRange ? "" : `${current}/`}`;
   const description = outOfRange
-    ? `#${name} 标签下的全部文章`
-    : `标签 "${name}" 第 ${current} 页`;
+    ? `Tiusx 博客中标记为「${name}」的全部文章，涵盖该主题下的实践记录、问题排查与经验总结。`
+    : `Tiusx 博客中标记为「${name}」的文章第 ${current} / ${pageCount} 页，涵盖该主题下的实践记录与问题排查。`;
   return {
     title: `#${name}`,
     description,
+    keywords: buildKeywords([name, `${name}教程`]),
     alternates: withRssCanonical(canonical),
     openGraph: {
       title: `#${name} · 标签`,
