@@ -2,35 +2,17 @@ import { withRssCanonical, postKeywords, descriptionOrSite } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllPosts, getPostMeta, getPostStats } from "@/lib/posts";
-import { BackButton } from "@/components/back-button";
+import { getAllPosts, getPostBody, getPostMeta, getPostStats } from "@/lib/posts";
+import { formatDate } from "@/lib/date";
 import LightboxImage from "@/components/lightbox-image";
 import { GiscusComments } from "@/components/giscus-comments";
+import { Toc } from "@/components/toc";
+import { TocSidebar } from "@/components/toc-sidebar";
+import { Icon } from "@/components/icon";
+import { extractHeadings, TOC_MIN_ENTRIES } from "@/lib/headings";
 import { SITE_CONFIG } from "@/site.config";
 
 export const dynamicParams = false;
-
-// 文章日期统一按中国时区显示（构建时由 Intl 固定 Asia/Shanghai，无客户端差异）
-function formatChinaDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(d);
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
-
-function formatShortDate(iso: string): string {
-  const parts = formatChinaDate(iso).split("-");
-  if (parts.length !== 3) return iso;
-  const [, m, d] = parts;
-  return `${+m}.${+d}`;
-}
 
 export function generateStaticParams() {
   const raw = getAllPosts().map((post) => ({ slug: post.slug }));
@@ -104,15 +86,14 @@ export default async function PostPage({
 
   const allPosts = getAllPosts();
   const currentIndex = allPosts.findIndex((post) => post.slug === meta.slug);
-  const related = allPosts.slice(
-    Math.max(0, currentIndex - 2),
-    currentIndex + 3
-  ).filter((post) => post.slug !== meta.slug);
 
   // allPosts 已按日期倒序：index 0 是最新一篇
   const newer = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
   const older = currentIndex >= 0 && currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
   const stats = getPostStats(meta.slug);
+  // 目录只在正文够长时出现：短笔记套个大目录反而碍事。
+  const headings = extractHeadings(getPostBody(meta.slug));
+  const toc = headings.length >= TOC_MIN_ENTRIES ? headings : [];
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -142,44 +123,43 @@ export default async function PostPage({
   };
 
   return (
-    <main className="content py-12">
+    <main className="content article-page py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <BackButton label="← 返回列表" />
-
-      <article className="mt-8">
+      <article>
         <header>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+          <h1 className="text-[1.6rem] leading-[1.32] font-semibold tracking-[-0.012em] text-ink [overflow-wrap:anywhere] sm:text-[1.9rem]">
             {meta.title}
           </h1>
-          <p className="mt-4 text-sm text-muted">
-            <time dateTime={meta.date}>{formatChinaDate(meta.date)}</time>
+          <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[0.74rem] tracking-wide text-muted">
+            <time dateTime={meta.date} className="tabular-nums">
+              {formatDate(meta.date)}
+            </time>
             {meta.category ? (
-              <span>
-                {" "}
-                ·{" "}
+              <>
+                <span className="text-line">·</span>
                 <Link
                   href={`/categories/${encodeURIComponent(meta.category)}/`}
-                  className="text-accent transition-colors hover:underline"
+                  className="text-accent transition-colors hover:underline hover:underline-offset-2"
                 >
                   {meta.category}
                 </Link>
-              </span>
+              </>
             ) : null}
-            <span className="text-sub">
-              {" "}
-              · 约 {stats.minutes} 分钟 · {stats.count.toLocaleString("zh-CN")} 字
+            <span className="text-line">·</span>
+            <span className="tabular-nums text-sub">
+              约 {stats.minutes} 分钟 · {stats.count.toLocaleString("zh-CN")} 字
             </span>
-          </p>
+          </div>
           {meta.tags.length > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-1.5">
               {meta.tags.map((tag) => (
                 <Link
                   key={tag}
                   href={`/tags/${encodeURIComponent(tag)}/`}
-                  className="rounded-full border border-line px-3 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-accent"
+                  className="rounded-full border border-line px-2.5 py-0.5 text-[11px] text-muted transition-colors hover:border-accent hover:text-accent"
                 >
                   {tag}
                 </Link>
@@ -197,19 +177,26 @@ export default async function PostPage({
           />
         ) : null}
 
+        {/* 目录放在 prose 之外：Tailwind typography 会给 ol/p/a 套上正文样式
+            （编号、段间距），放进去反而要一层层覆盖。
+            小屏用顶部卡片，宽屏换成右侧粘性版（见 TocSidebar）。 */}
+        <Toc entries={toc} className="xl:hidden" />
+        <TocSidebar entries={toc} />
+
         <div className="prose mx-auto mt-10 max-w-[40rem]">
           <Post />
         </div>
 
+        {/* 上下篇：两条并排的轻量导航，靠箭头和字重区分方向。
+            不套 max-w-[40rem]：与页头标题对齐到容器宽度，而不是跟正文列。 */}
         {(newer || older) && (
-          <nav className="mx-auto mt-12 grid max-w-[40rem] gap-3 border-t border-line pt-8 sm:grid-cols-2">
+          <nav className="mt-14 grid gap-x-8 gap-y-5 border-t border-line pt-7 sm:grid-cols-2">
             {older ? (
-              <Link
-                href={`/posts/${older.slug}/`}
-                className="group flex min-w-0 flex-col rounded-lg border border-line px-4 py-3 transition-colors hover:border-accent hover:bg-card"
-              >
-                <span className="text-xs text-sub">← 上一篇</span>
-                <span className="mt-1 truncate text-sm text-ink transition-colors group-hover:text-accent">
+              <Link href={`/posts/${older.slug}/`} className="group min-w-0">
+                <span className="flex items-center gap-1.5 text-[11px] tracking-wide text-muted">
+                  <Icon name="arrow-left" size={11} /> 上一篇
+                </span>
+                <span className="mt-1.5 block line-clamp-2 text-sm leading-snug text-ink transition-colors group-hover:text-accent">
                   {older.meta.title}
                 </span>
               </Link>
@@ -217,12 +204,11 @@ export default async function PostPage({
               <span />
             )}
             {newer ? (
-              <Link
-                href={`/posts/${newer.slug}/`}
-                className="group flex min-w-0 flex-col rounded-lg border border-line px-4 py-3 text-right transition-colors hover:border-accent hover:bg-card"
-              >
-                <span className="text-xs text-sub">下一篇 →</span>
-                <span className="mt-1 truncate text-sm text-ink transition-colors group-hover:text-accent">
+              <Link href={`/posts/${newer.slug}/`} className="group min-w-0 sm:text-right">
+                <span className="flex items-center gap-1.5 text-[11px] tracking-wide text-muted sm:justify-end">
+                  下一篇 <Icon name="arrow-right" size={11} />
+                </span>
+                <span className="mt-1.5 block line-clamp-2 text-sm leading-snug text-ink transition-colors group-hover:text-accent">
                   {newer.meta.title}
                 </span>
               </Link>
@@ -231,32 +217,6 @@ export default async function PostPage({
             )}
           </nav>
         )}
-
-        <div className="mx-auto mt-12 max-w-[40rem]">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
-            其他文章
-          </h2>
-          <ul className="divide-y divide-dashed divide-line/60">
-            {related.map((post) => (
-              <li key={post.slug}>
-                <Link
-                  href={`/posts/${post.slug}/`}
-                  className="group -mx-2 flex items-center gap-2 rounded-lg px-2 py-2.5 transition-colors hover:bg-card active:bg-card sm:gap-3 sm:py-2"
-                >
-                  <span className="min-w-0 flex-1 truncate text-sm text-muted transition-colors group-hover:text-accent active:text-accent">
-                    {post.meta.title}
-                  </span>
-                  <time
-                    dateTime={post.meta.date}
-                    className="shrink-0 font-mono text-[0.7rem] tabular-nums text-sub sm:text-xs"
-                  >
-                    {formatShortDate(post.meta.date)}
-                  </time>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
 
         <GiscusComments />
       </article>

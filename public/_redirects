@@ -1,2 +1,4 @@
 /friends/* /pages/friends/:splat 301
 /friends /pages/friends/ 301
+/categories/ /columns/ 301
+/categories /columns/ 301

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { stripInlineMarkdown } from "./text";
 
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
 
@@ -33,7 +34,10 @@ function normalizeMeta(data: Record<string, unknown>): PostMeta {
     date: asString(data.date),
     category: asString(data.category),
     tags: asStringArray(data.tags),
-    summary: asString(data.summary),
+    // summary 会流进 meta description、og:description、列表与搜索片段——全是
+    // 纯文本位置。Notion 里带过来的 **加粗** 必须在这里剥掉，否则搜索结果里
+    // 会出现字面量星号。
+    summary: stripInlineMarkdown(asString(data.summary)),
     cover: data.cover ? asString(data.cover) : undefined,
   };
 }
@@ -227,4 +231,45 @@ export function getPostsByCategoryPage(category: string, page: number, pageSize:
 export function getPostsByCategoryPageCount(category: string, pageSize: number): number {
   const all = getPostsByCategory(category);
   return Math.max(1, Math.ceil(all.length / pageSize));
+}
+
+/**
+ * 相关文章：按标签 / 分类的重合度排序，而不是「日期相邻」。
+ *
+ * 原先取的是日期索引前后两篇，等于随机推荐——读完一篇 Nginx 排障文，
+ * 底下推荐一篇生活随笔。这里标签每个记 2 分、同分类记 1 分，
+ * 分数相同再按日期新到旧；不足 limit 时用相邻文章补齐。
+ */
+export function getRelatedPosts(slug: string, limit = 5): Post[] {
+  const all = getAllPosts();
+  const current = all.find((post) => post.slug === slug);
+  if (!current) return all.slice(0, limit);
+
+  const tags = new Set(current.meta.tags);
+  const scored = all
+    .filter((post) => post.slug !== slug)
+    .map((post) => {
+      const sharedTags = post.meta.tags.filter((tag) => tags.has(tag)).length;
+      const sameCategory = post.meta.category === current.meta.category ? 1 : 0;
+      return { post, score: sharedTags * 2 + sameCategory };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || (a.post.meta.date < b.post.meta.date ? 1 : -1))
+    .map((item) => item.post);
+
+  if (scored.length >= limit) return scored.slice(0, limit);
+
+  // 相关度不足时，用日期相邻的文章补齐，避免出现只有 1 条的推荐区
+  const picked = new Set(scored.map((post) => post.slug));
+  const index = all.findIndex((post) => post.slug === slug);
+  for (let offset = 1; picked.size < limit && offset < all.length; offset++) {
+    for (const candidate of [all[index - offset], all[index + offset]]) {
+      if (candidate && !picked.has(candidate.slug)) {
+        picked.add(candidate.slug);
+        scored.push(candidate);
+      }
+      if (picked.size >= limit) break;
+    }
+  }
+  return scored.slice(0, limit);
 }

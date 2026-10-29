@@ -37,6 +37,8 @@ export default defineConfig([
   },
   globalIgnores([
     ".next/**",
+    // dev 专用构建目录（见 next.config.ts 的 distDir 说明）
+    ".next-dev/**",
     "out/**",
     "node_modules/**",
     "next-env.d.ts",

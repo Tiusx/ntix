@@ -123,7 +123,7 @@ export default async function CategoryPage({
       )}
 
       <section>
-        <PostList posts={posts} dense page={current} />
+        <PostList posts={posts} dense />
       </section>
 
       {pageCount > 1 && !outOfRange && (

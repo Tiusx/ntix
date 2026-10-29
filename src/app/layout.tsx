@@ -4,6 +4,7 @@ import { LightboxProvider } from "@/components/lightbox-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BackToTop } from "@/components/back-to-top";
 import { LIGHT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { WEBFONT_HREF, WEBFONT_LOAD_SCRIPT } from "@/lib/fonts";
 import { withRss, ogDefaultImage, buildKeywords } from "@/lib/seo";
 import "./globals.css";
 
@@ -52,6 +53,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* 首屏前同步应用主题，避免刷新闪烁。必须内联且同步执行。 */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* 字体改为异步加载：media=print 不参与首屏渲染，加载完成后切回 all。
+            直接 <link rel="stylesheet"> 会在 Google Fonts 不可达时把首屏卡住。 */}
+        <script dangerouslySetInnerHTML={{ __html: WEBFONT_LOAD_SCRIPT }} />
+        <noscript>
+          <link rel="stylesheet" href={WEBFONT_HREF} />
+        </noscript>
         <meta name="msvalidate.01" content="A843521F93A928CA1E8449B430ACD311" />
         <meta name="baidu-site-verification" content="codeva-HJxCyZSxvz" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -59,14 +66,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="preconnect"
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Press+Start+2P&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         />
       </head>
       <body>

@@ -101,7 +101,7 @@ export default async function CategoryPage({
         </p>
       ) : (
         <section>
-          <PostList posts={posts} dense page={1} />
+          <PostList posts={posts} dense />
         </section>
       )}
 

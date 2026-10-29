@@ -1,28 +1,24 @@
 import Link from "next/link";
 import type { Post } from "@/lib/posts";
+import { formatDateDots } from "@/lib/date";
 
-function formatDateShort(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const y = d.getFullYear();
-  const m = `${d.getMonth() + 1}`.padStart(2, "0");
-  const day = `${d.getDate()}`.padStart(2, "0");
-  return `${y}.${m}.${day}`;
-}
-
-function postHref(slug: string, page?: number): string {
-  const base = `/posts/${slug}/`;
-  return page && page > 1 ? `${base}?from=${page}` : base;
+/**
+ * 列表里的文章链接。
+ *
+ * 曾经给密集列表拼过 `?from=<page>` 想让详情页知道来源，但详情页从头到尾
+ * 没读过这个参数（BackButton 用的是 document.referrer），等于给每个分页
+ * 凭空造出一批带查询串的重复 URL，对收录与统计都是噪音。已移除。
+ */
+function postHref(slug: string): string {
+  return `/posts/${slug}/`;
 }
 
 export function PostList({
   posts,
   dense = false,
-  page,
 }: {
   posts: Post[];
   dense?: boolean;
-  page?: number;
 }) {
   if (posts.length === 0) {
     return <p className="py-10 text-center text-sm text-muted">暂无文章。</p>;
@@ -34,7 +30,7 @@ export function PostList({
         {posts.map((post) => (
           <li key={post.slug}>
             <Link
-              href={postHref(post.slug, page)}
+              href={postHref(post.slug)}
               className="group flex flex-col gap-1.5 py-3.5"
             >
               <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
@@ -42,7 +38,7 @@ export function PostList({
                   dateTime={post.meta.date}
                   className="font-mono text-sm tabular-nums text-muted"
                 >
-                  {formatDateShort(post.meta.date)}
+                  {formatDateDots(post.meta.date)}
                 </time>
                 {post.meta.category ? (
                   <span className="text-sm leading-none text-muted">

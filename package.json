@@ -9,8 +9,13 @@
   },
   "scripts": {
     "dev": "next dev",
+    "predev": "tsx scripts/generate-search-index.ts",
     "prebuild": "tsx scripts/sync-memos.ts && tsx scripts/generate-search-index.ts && tsx scripts/generate-og.tsx",
     "build": "next build",
+    "build:local": "tsx scripts/generate-search-index.ts && next build",
+    "build:ci": "next build",
+    "clean": "node -e \"const fs=require('fs');for(const d of ['.next','.next-dev','out'])fs.rmSync(d,{recursive:true,force:true})\"",
+    "build:clean": "pnpm clean && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -71,6 +76,7 @@
     "yet-another-react-lightbox": "^3.32.2"
   },
   "devDependencies": {
+    "@shikijs/rehype": "^4.5.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.13.6",
     "@types/react": "^19",
@@ -80,6 +86,7 @@
     "eslint-config-next": "^16.3.6",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.9",
+    "shiki": "^4.5.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",

@@ -74,7 +74,7 @@ export default async function BlogPage({
       </h1>
       <p className="mb-10 text-base text-muted">{all.length} posts.</p>
 
-      <PostList posts={posts} dense page={current} />
+      <PostList posts={posts} dense />
 
       <Pagination current={current} total={pageCount} basePath="/blog" />
     </main>

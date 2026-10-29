@@ -143,6 +143,13 @@ describe("routeSignatures", () => {
     expect(set.size).toBe(1);
   });
 
+  it("跳转存根不进路由清单（/categories/）", () => {
+    expect(staticRoutePaths()).not.toContain("/categories/");
+    expect(sigs.has("/categories/")).toBe(false);
+    // /archive/ 是独立的时间线视图，必须留着
+    expect(staticRoutePaths()).toContain("/archive/");
+  });
+
   it("标签页按归属各自计算，不共用一个指纹", () => {
     // 否则改一篇文章会把 48 个标签页全部重推一遍
     const tagSigs = tagRoutePaths().map((p) => sigs.get(p));

@@ -21,13 +21,21 @@ import { getAllPages } from "./pages";
 
 const enc = encodeURIComponent;
 
-/** 静态路由（内容随文章变化的列表页也归到 signature 的 listing 组）。 */
+/**
+ * 静态路由。
+ *
+ * 只收录「有独立内容、值得被索引」的页面。
+ * /categories/ 被刻意排除：它只是跳转到 /columns/ 的存根（带 noindex），
+ * 放进 sitemap / IndexNow 等于向搜索引擎申报一个没有正文的地址。
+ *
+ * 注意 /archive/ 与 /blog/ 都在这里：一个是年月时间线、一个是分页列表，
+ * 阅读意图不同，不是重复页。
+ */
 export function staticRoutePaths(): string[] {
   return [
     "/",
     "/archive/",
     "/blog/",
-    "/categories/",
     "/columns/",
     "/memos/",
     "/search/",
@@ -127,8 +135,8 @@ export function routeSignatures(pageSize: number): Map<string, string> {
   for (const p of ["/", "/archive/", "/blog/", "/columns/", "/search/", "/memos/"]) {
     map.set(p, globalSig);
   }
-  // /rss.xml /categories/ /tags/ 本身是入口页，随内容一起算全局
-  for (const p of ["/rss.xml", "/categories/", "/tags/"]) {
+  // /rss.xml 与 /tags/ 本身是入口页，随内容一起算全局
+  for (const p of ["/rss.xml", "/tags/"]) {
     map.set(p, globalSig);
   }
   for (let p = 2; p <= Math.ceil(posts.length / pageSize); p++) {

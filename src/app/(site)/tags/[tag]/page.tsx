@@ -78,7 +78,7 @@ export default async function TagPage({
       </header>
 
       <section className="pt-4">
-        <PostList posts={posts} dense page={1} />
+        <PostList posts={posts} dense />
       </section>
 
       {pageCount > 1 && (

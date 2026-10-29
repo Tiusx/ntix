@@ -36,7 +36,7 @@ export default function BlogPage() {
       </h1>
       <p className="mb-10 text-base text-muted">{all.length} posts.</p>
 
-      <PostList posts={posts} dense page={1} />
+      <PostList posts={posts} dense />
 
       {pageCount > 1 ?       <Pagination current={1} total={pageCount} basePath="/blog" /> : null}
     </main>

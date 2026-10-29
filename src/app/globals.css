@@ -12,33 +12,11 @@
   --content-width: 45rem;
 }
 
-/* ─── 主题令牌（data-theme 切换 + 系统跟随）──────────────────────── */
-
-/* 未指定 data-theme 时跟随系统 */
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #fbfbfb;
-    --surface: #ffffff;
-    --fg: #101828;
-    --secondary: #475467;
-    --muted: #98a2b3;
-    --accent: #18181b;
-    --border: #e4e7ec;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #1d2021;
-    --surface: #262a2b;
-    --fg: #e8e4dc;
-    --secondary: #8a8378;
-    --muted: #b6ad9f;
-    --accent: #efe9db;
-    --border: #3a3830;
-  }
-}
+/* ─── 主题令牌 ──────────────────────────────────────────────────────
+   只有 data-theme 这一套来源。
+   此前还并存两份 prefers-color-scheme 定义，但 root layout 始终输出
+   data-theme（首屏脚本也会把它写死成 nord/graphite），属性选择器优先级
+   更高，那两份媒体查询从未生效过，纯属改色时要改四处的维护负担。 */
 
 html[data-theme="nord"] {
   color-scheme: light;
@@ -164,6 +142,55 @@ body {
   93% { transform: translateX(0); opacity: 0; }
 }
 
+/* 锚点跳转：标题不要贴着视口顶端；滚动动画尊重系统「减少动态效果」设置 */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+.prose :where(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: 1.5rem;
+}
+
+/* 语法高亮（shiki，构建期生成）。
+   defaultColor:false 时 shiki 不给 token 上色，只输出
+   style="--shiki-light:#...;--shiki-dark:#..." 两个变量，颜色由这里按主题选，
+   所以切换亮/暗不需要重新高亮，也没有双份 DOM。 */
+/* 不限定 .prose：正文排版类换过三版，挂在容器类下会让高亮在别的版式里失效 */
+html[data-theme="nord"] pre span[style*="--shiki-light"] {
+  color: var(--shiki-light);
+}
+
+html[data-theme="graphite"] pre span[style*="--shiki-dark"] {
+  color: var(--shiki-dark);
+}
+
+/* 表格滚动容器：不再用 display:block 破坏表格语义 */
+.prose .table-scroll {
+  margin: 1.5em 0;
+  overflow-x: auto;
+}
+
+.prose .table-scroll table {
+  margin: 0;
+}
+
+/* 标题锚点：hover 时出现 #，方便复制小节链接 */
+.prose :where(h2, h3) .heading-anchor {
+  margin-left: 0.4em;
+  color: var(--muted);
+  font-weight: 400;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.prose :where(h2, h3):hover .heading-anchor,
+.prose .heading-anchor:focus-visible {
+  opacity: 1;
+}
+
 /* ─── 文章排版（prose）───────────────────────────────────────────────── */
 
 .prose {
@@ -239,7 +266,7 @@ html, body { overflow-x: hidden; }
 .content { overflow-x: hidden; }
 .prose { overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
 .prose :where(img) { max-width: 100%; height: auto; }
-.prose :where(table) { display: block; width: 100%; overflow-x: auto; }
+.prose :where(table) { width: 100%; }
 .prose :where(pre) { max-width: 100%; overflow-x: auto; }
 
 /* Memos Feed 卡片内内容防溢出：强制换行，不截断 */
@@ -317,10 +344,8 @@ article.memo-card a { word-break: break-all; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-/* Memos 位置标记样式 */
-.memo-card .fa-location-dot {
-  color: var(--accent);
-}
+/* 说明：位置标记图标已改为内联 SVG（components/icon.tsx），
+   原先针对 .fa-location-dot 的着色规则随之删除。 */
 
 /* ─── 时间线（可嵌入 Markdown，配合 rehype-raw 使用） ───────────── */
 
@@ -380,3 +405,294 @@ article.memo-card a { word-break: break-all; }
      <div><time>2024 · 春</time> 一句话</div>
    </div>
    或 <ul><li>…</li></ul> 结构均可。 */
+
+/* ─── 文章详情页细节精修（只作用于 /posts/[slug]/）────────────────────
+   保持原有版式：单栏 40rem + 右栏目录 + 相关文章 + 评论。
+   这里只调字号、行高、间距与列表缩进——这些是「读起来别扭」的来源。 */
+
+.article-page .prose {
+  font-size: 16px;
+  line-height: 1.86;
+}
+
+.article-page .prose :where(p) {
+  margin-block: 1.2em;
+}
+
+.article-page .prose :where(h2) {
+  margin-top: 2em;
+  margin-bottom: 0.75em;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: -0.008em;
+}
+
+.article-page .prose :where(h3) {
+  margin-top: 1.85em;
+  margin-bottom: 0.5em;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* 正文首个小节不要顶出一大块空白 */
+.article-page .prose > :where(h2, h3):first-child {
+  margin-top: 0;
+}
+
+.article-page .prose :where(h2) + *,
+.article-page .prose :where(h3) + * {
+  margin-top: 0;
+}
+
+/* 列表：缩进收到 1.2em，项间距给一点点，圆点用弱色 */
+.article-page .prose :where(ul) {
+  padding-left: 1.2em;
+}
+
+.article-page .prose :where(ol) {
+  padding-left: 1.35em;
+}
+
+.article-page .prose :where(li) {
+  margin-block: 0.36em;
+  padding-left: 0.15em;
+}
+
+.article-page .prose :where(ul) > :where(li)::marker {
+  color: var(--muted);
+}
+
+.article-page .prose :where(ol) > :where(li)::marker {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.article-page .prose :where(blockquote) {
+  margin-block: 1.7em;
+  padding: 0.1em 0 0.1em 1.05em;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  font-style: normal;
+  color: var(--secondary);
+}
+
+.article-page .prose :where(blockquote) :where(p) {
+  margin-block: 0.4em;
+}
+
+.article-page .prose :where(hr) {
+  margin-block: 2.6em;
+  border-color: var(--border);
+  opacity: 0.75;
+}
+
+.article-page .prose :where(table) {
+  font-size: 0.94em;
+}
+
+.article-page .prose :where(img) {
+  border-radius: 10px;
+}
+
+/* 代码块上下留白略收，和段落节奏对齐 */
+.article-page .prose :where(figure) {
+  margin-block: 1.6em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   代码块
+   头部与正文靠**底色差**分层（头部更暗），不画分隔线；
+   语言标签小写等宽，右侧只有图标。行号用 CSS counter 画在 shiki 的
+   .line 上，不破坏高亮结构。
+   ═══════════════════════════════════════════════════════════════════ */
+
+.code-block {
+  margin-block: 1.7em;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/**
+ * 亮色下的代码块。
+ * 卡片底与页面同为米白，靠边框和代码区那层灰分层次，所以边框要加深；
+ * --border（#e4e7ec）在亮底上几乎看不见。暗色不需要这段。
+ */
+html[data-theme="nord"] .code-block {
+  border-color: color-mix(in srgb, var(--fg) 16%, transparent);
+}
+
+html[data-theme="nord"] .code-pre {
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
+}
+
+/* 亮色下头栏单独给一层灰：页面米白 → 头栏 #d7d4d4 → 代码区浅灰，
+   三层依次分开，头和正文不再糊成一片。暗色反过来（头栏=页面底色，
+   代码区更亮），所以只给亮色加这段。 */
+html[data-theme="nord"] .code-head {
+  background: #d7d4d4;
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  height: 36px;
+  margin: 0; /* 抵消 @tailwindcss/typography 给 figcaption 的 margin-top: .857143em */
+  padding: 0 0.7rem 0 1.1rem;
+  background: transparent;
+}
+
+.code-lang {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+  color: color-mix(in srgb, var(--fg) 78%, transparent);
+  user-select: none;
+}
+
+/* plain 围栏（text/plain）shiki 直接原样输出，没有 .line 包裹，
+   这里必须自己保住缩进和折行，并把左右内边距补回来。 */
+.code-block.is-plain .code-pre {
+  padding: 0.9rem 1rem 1rem;
+}
+
+.code-block.is-plain .code-pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.code-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: color-mix(in srgb, var(--fg) 40%, transparent);
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.code-copy svg {
+  width: 15px;
+  height: 15px;
+}
+
+.code-copy:hover {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+
+.code-pre {
+  margin: 0;
+  padding: 0.9rem 0 1rem;
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  overflow-x: auto;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.code-pre code {
+  display: block;
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  /* shiki 在 .line 之间留了换行符；<pre> 默认 white-space: pre 会把它当成
+     空行渲染，行距直接翻倍。这里把外层恢复 normal，缩进由 .line 自己保留。 */
+  white-space: normal;
+}
+
+.code-pre .line {
+  display: block;
+  padding-inline: 1rem;
+  /* 博客里的代码多是日志/报错，长行横向滚动会藏内容；
+     这里允许折行，保证一眼看全，代码缩进仍由 pre-wrap 保留。 */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 行号：只对 4 行以上的片段启用 */
+.code-block.with-lines .code-pre code {
+  counter-reset: line;
+}
+
+.code-block.with-lines .code-pre .line {
+  position: relative;
+  padding-left: 3.1rem;
+}
+
+.code-block.with-lines .code-pre .line::before {
+  counter-increment: line;
+  content: counter(line);
+  position: absolute;
+  left: 0;
+  width: 2.1rem;
+  text-align: right;
+  color: var(--muted);
+  opacity: 0.45;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* ─── Markdown 其它元素的补齐 ─────────────────────────────────────── */
+
+/* 任务列表：复选框对齐首行，去掉列表符号 */
+.article-page .prose :where(li):has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.15em;
+}
+
+.article-page .prose :where(input[type="checkbox"]) {
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.5em;
+  vertical-align: -0.1em;
+  accent-color: var(--accent);
+}
+
+/* 外链：标题旁一个小箭头，提示会离开站点 */
+.article-page .prose :where(a[target="_blank"])::after {
+  content: "↗";
+  margin-left: 0.12em;
+  font-size: 0.82em;
+  color: var(--muted);
+}
+
+/* 脚注 */
+.article-page .prose :where(section[data-footnotes]) {
+  margin-top: 2.6em;
+  padding-top: 1em;
+  border-top: 1px solid var(--border);
+  font-size: 0.88em;
+  color: var(--secondary);
+}
+
+/* 键盘按键 */
+.article-page .prose :where(kbd) {
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 0.82em;
+}
+
+/* 标记高亮 */
+.article-page .prose :where(mark) {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: inherit;
+  padding: 0.05em 0.2em;
+  border-radius: 3px;
+}

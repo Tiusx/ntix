@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllPosts, type Post } from "@/lib/posts";
+import { formatMonthDaySlash, getYearMonth } from "@/lib/date";
 import { buildKeywords, withRssCanonical } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -14,7 +15,8 @@ export const metadata: Metadata = {
 interface Item {
   slug: string;
   title: string;
-  date: Date;
+  /** 原始 ISO 日期，展示时统一走 lib/date 的中国时区格式化 */
+  date: string;
 }
 
 type ArchiveGroup = Map<number, Map<string, Item[]>>;
@@ -22,23 +24,28 @@ type ArchiveGroup = Map<number, Map<string, Item[]>>;
 function groupPosts(posts: Post[]): ArchiveGroup {
   const grouped = new Map<number, Map<string, Item[]>>();
   for (const post of posts) {
-    const d = new Date(post.meta.date);
-    if (Number.isNaN(d.getTime())) continue;
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1;
-    if (!grouped.has(year)) grouped.set(year, new Map());
-    const byMonth = grouped.get(year)!;
-    const key = `${month}月`;
+    const ym = getYearMonth(post.meta.date);
+    if (!ym) continue;
+    if (!grouped.has(ym.year)) grouped.set(ym.year, new Map());
+    const byMonth = grouped.get(ym.year)!;
+    const key = `${ym.month}月`;
     if (!byMonth.has(key)) byMonth.set(key, []);
     byMonth.get(key)!.push({
       slug: post.slug,
       title: post.meta.title,
-      date: d,
+      date: post.meta.date,
     });
   }
   return grouped;
 }
 
+/**
+ * 时间线视图。
+ *
+ * 与 /blog/ 的分工：/blog/ 是分页的文章列表（按页翻，适合逐篇浏览），
+ * 这里是按年月聚合的全量时间线（适合回看「哪年写了什么」）。
+ * 两者内容有重叠，但阅读意图不同，因此都保留、都在 sitemap 里。
+ */
 export default function ArchivePage() {
   const posts = getAllPosts();
   const grouped = groupPosts(posts);
@@ -59,10 +66,7 @@ export default function ArchivePage() {
         <div className="relative ml-1.5 border-l border-line pl-8">
           {years.map((year) => {
             const byMonth = grouped.get(year)!;
-            const yearCount = [...byMonth.values()].reduce(
-              (n, arr) => n + arr.length,
-              0,
-            );
+            const yearCount = [...byMonth.values()].reduce((n, arr) => n + arr.length, 0);
             return (
               <div key={year} className="relative mb-12">
                 <span className="absolute -left-[37px] top-1.5 h-3 w-3 rounded-full bg-ink" />
@@ -86,9 +90,7 @@ export default function ArchivePage() {
                             className="group -mx-2 flex items-baseline gap-x-3 rounded-md px-2 py-2 transition-colors hover:bg-card"
                           >
                             <span className="w-11 shrink-0 text-right font-mono text-xs tabular-nums text-muted">
-                              {String(item.date.getMonth() + 1).padStart(2, "0")}
-                              {"/"}
-                              {String(item.date.getDate()).padStart(2, "0")}
+                              {formatMonthDaySlash(item.date)}
                             </span>
                             <span className="min-w-0 flex-1 truncate font-serif text-base tracking-wide text-ink underline-offset-4 transition-colors group-hover:underline group-hover:decoration-accent">
                               {item.title}

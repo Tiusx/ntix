@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseSyncArgs } from "./lib/cli";
+import { toPublicAssetUrl, r2Bucket, r2PublicDomain } from "./lib/asset-url";
 import { loadEnv } from "./notion/utils";
 import { withRetry } from "./lib/retry";
 
@@ -48,7 +49,24 @@ interface Memo {
 
 const esc = (value: string): string => value.replace(/"/g, '\\"');
 
-function buildFrontmatter(memo: Memo): string {
+/**
+ * 附件的 externalLink 由 Memos 的 S3 后端签发，是**几天后就会过期**的预签名
+ * 链接。本站是静态导出，链接会被固化进 markdown 快照，必须在这里改写为
+ * 公开域名，否则快照里的图片会在签名过期后集体 403（详见 lib/asset-url.ts）。
+ */
+function normalizeMemo(memo: Memo): Memo {
+  const options = { publicDomain: r2PublicDomain(), bucket: r2Bucket() };
+  return {
+    ...memo,
+    attachments: (memo.attachments ?? []).map((attachment) => ({
+      ...attachment,
+      externalLink: toPublicAssetUrl(attachment.externalLink, options),
+    })),
+  };
+}
+
+function buildFrontmatter(input: Memo): string {
+  const memo = normalizeMemo(input);
   const slug = memo.name.replace(/^memos\//, "");
   const lines = [
     "---",
@@ -151,6 +169,13 @@ function sync(
 
 async function main() {
   const args = parseSyncArgs();
+  // 本地调试专用开关：`SKIP_MEMOS_SYNC=1 pnpm build` 可以完全跳过网络请求。
+  // 平时用 `pnpm build:local`（不触发 prebuild）就够，这个开关是给
+  // 「必须跑完整 build 流程但不想等 Memos」的场景兜底的。
+  if (process.env.SKIP_MEMOS_SYNC === "1") {
+    console.log("⏭️  跳过 memos 同步（SKIP_MEMOS_SYNC=1），沿用 content/memos 现有快照");
+    return;
+  }
   if (args.dryRun) {
     console.log("🔍 DRY RUN — 不会写入或删除任何文件");
   }

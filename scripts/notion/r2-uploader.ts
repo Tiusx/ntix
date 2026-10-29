@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { optimizeImage } from "./image-optimizer";
 import { withRetry } from "../lib/retry";
+import { r2Bucket, r2PublicDomain } from "../lib/asset-url";
 
 /**
  * Cloudflare R2 图片上传（基于 S3 兼容 API）。
@@ -16,13 +17,6 @@ import { withRetry } from "../lib/retry";
  * 调整任一 import 顺序都会让两个 fetcher 报「缺少环境变量」。
  * 现已改为由各脚本在 main() 中显式 loadEnv() 后再构造 config。
  */
-
-/** R2 桶名（不敏感，可被 R2_BUCKET 覆盖）。 */
-const r2Bucket = (): string => process.env.R2_BUCKET || "cf-imgbed";
-
-/** 绑定到 R2 桶的自定义域名（图片公开访问域名）。 */
-const r2PublicDomain = (): string =>
-  (process.env.R2_PUBLIC_DOMAIN || "https://r2.tius.cn").replace(/\/$/, "");
 
 /**
  * 已托管域名集合（R2 图床或既有图床，逗号分隔，可被 R2_HOSTED_DOMAINS 覆盖）。

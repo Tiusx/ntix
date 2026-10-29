@@ -1,12 +1,21 @@
-"use client";
-
-import { useState, useEffect, useRef, useSyncExternalStore } from "react";
-import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import Link from "next/link";
 import LightboxImage from "@/components/lightbox-image";
+import { AudioPlayer } from "@/components/audio-player";
+import { ClientTime } from "@/components/client-time";
+import { Icon } from "@/components/icon";
 import type { Memo } from "@/lib/memos";
+
+/**
+ * Memos 信息流。
+ *
+ * 这个文件刻意没有 "use client"：memos 的内容在构建期就固定了，Markdown 必须
+ * 在服务端渲染成 HTML。此前整个组件是 client 组件，等于为了 20 条碎碎念把
+ * react-markdown + remark-gfm + rehype-raw 整套（约 320KB 未压缩）塞进浏览器。
+ * 现在只有音频播放器、本地时间、灯箱这三个真正需要交互的部分是 client 岛。
+ */
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -26,72 +35,14 @@ function isAudio(type: string): boolean {
   return type.startsWith("audio/");
 }
 
-function getFileIcon(type: string): string {
-  if (type.includes("pdf")) return "fa-file-pdf";
-  if (type.includes("word") || type.includes("document")) return "fa-file-word";
-  if (type.includes("excel") || type.includes("spreadsheet")) return "fa-file-excel";
-  if (type.includes("zip") || type.includes("compressed") || type.includes("archive")) return "fa-file-zipper";
-  if (type.includes("markdown") || type.includes("md")) return "fa-file-lines";
-  if (type.includes("json")) return "fa-file-code";
-  if (type.includes("image")) return "fa-file-image";
-  if (type.includes("video")) return "fa-file-video";
-  if (type.includes("audio")) return "fa-file-audio";
-  return "fa-file";
-}
+type FileIcon = "file-image" | "file-video" | "file-audio" | "file-text";
 
-function formatDateFallback(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  const mm = pad(d.getMonth() + 1);
-  const dd = pad(d.getDate());
-  const hh = pad(d.getHours());
-  const mi = pad(d.getMinutes());
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
-}
-
-function formatAbsoluteDate(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: "Asia/Shanghai",
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).formatToParts(d);
-    const get = (type: Intl.DateTimeFormatPartTypes) =>
-      parts.find((p) => p.type === type)?.value ?? "";
-    return `${get("month")} ${get("day")}, ${get("year")} ${get("hour")}:${get("minute")}`;
-  } catch {
-    return formatDateFallback(iso);
-  }
-}
-
-/**
- * 客户端本地时区时间。
- *
- * 服务端无法得知访问者时区，因此 SSR 用确定性的 fallback 首屏渲染，
- * 挂载后再切换为本地时区格式。用 useSyncExternalStore 而非
- * useEffect + setState：后者会在 effect 体内同步 setState 触发级联渲染，
- * 且需要 suppressHydrationWarning 才能压掉不一致。
- */
-function ClientTime({ iso }: { iso: string }) {
-  const display = useSyncExternalStore(
-    // 该值不会「变化」，空订阅即可
-    () => () => {},
-    () => formatAbsoluteDate(iso),
-    () => formatDateFallback(iso),
-  );
-  return (
-    <time className="text-sub" dateTime={iso} suppressHydrationWarning>
-      {display}
-    </time>
-  );
+/** 附件图标只区分四类：图片 / 视频 / 音频 / 其他文档。 */
+function getFileIcon(type: string): FileIcon {
+  if (type.startsWith("image")) return "file-image";
+  if (type.startsWith("video")) return "file-video";
+  if (type.startsWith("audio")) return "file-audio";
+  return "file-text";
 }
 
 function extractImages(content: string): { images: string[]; clean: string } {
@@ -113,12 +64,7 @@ function ImageGrid({ urls, label }: { urls: string[]; label?: string }) {
   if (urls.length === 1) {
     return (
       <div className="mt-3 memo-img-wrap aspect-16-9">
-        <LightboxImage
-          src={urls[0]}
-          alt={label ?? ""}
-          loading="lazy"
-          className="cursor-pointer"
-        />
+        <LightboxImage src={urls[0]} alt={label ?? ""} loading="lazy" className="cursor-pointer" />
       </div>
     );
   }
@@ -129,109 +75,9 @@ function ImageGrid({ urls, label }: { urls: string[]; label?: string }) {
     <div className={`mt-3 grid ${gridCols} gap-1.5`}>
       {urls.map((src, i) => (
         <div key={i} className="memo-img-wrap aspect-square">
-          <LightboxImage
-            src={src}
-            alt={label ?? ""}
-            loading="lazy"
-            className="cursor-pointer"
-          />
+          <LightboxImage src={src} alt={label ?? ""} loading="lazy" className="cursor-pointer" />
         </div>
       ))}
-    </div>
-  );
-}
-
-function AudioPlayer({ src, filename }: { src: string; filename: string }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [currentTime, setCurrentTime] = useState("0:00");
-  const [duration, setDuration] = useState("0:00");
-
-  const formatTime = (sec: number) => {
-    if (isNaN(sec)) return "0:00";
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m}:${String(s).padStart(2, "0")}`;
-  };
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onTimeUpdate = () => {
-      setProgress((audio.currentTime / audio.duration) * 100 || 0);
-      setCurrentTime(formatTime(audio.currentTime));
-    };
-    const onLoadedMetadata = () => {
-      setDuration(formatTime(audio.duration));
-    };
-    const onEnded = () => setPlaying(false);
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("loadedmetadata", onLoadedMetadata);
-    audio.addEventListener("ended", onEnded);
-    return () => {
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
-      audio.removeEventListener("ended", onEnded);
-    };
-  }, []);
-
-  const togglePlay = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playing) {
-      audio.pause();
-    } else {
-      audio.play();
-    }
-    setPlaying(!playing);
-  };
-
-  return (
-    <div className="mt-3 memo-audio-player">
-      <div className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3">
-        <button
-          type="button"
-          onClick={togglePlay}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white transition-colors hover:bg-accent/80"
-        >
-          <i className={`fa-solid ${playing ? "fa-pause" : "fa-play"} text-sm ml-0.5`}></i>
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-ink">{filename}</p>
-          <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted">
-            <span className="shrink-0 tabular-nums">{currentTime}</span>
-            <div className="relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-line"
-              onClick={(e) => {
-                const audio = audioRef.current;
-                if (!audio || !audio.duration) return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const ratio = (e.clientX - rect.left) / rect.width;
-                audio.currentTime = ratio * audio.duration;
-              }}
-            >
-              <div
-                className="absolute inset-y-0 left-0 bg-accent rounded-full"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <span className="shrink-0 tabular-nums">{duration}</span>
-          </div>
-        </div>
-        <a
-          href={src}
-          download={filename}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent transition-colors hover:bg-accent hover:text-white"
-          title="下载"
-        >
-          <i className="fa-solid fa-download text-sm"></i>
-        </a>
-      </div>
-      <audio ref={audioRef} preload="metadata" className="hidden">
-        <source src={src} />
-      </audio>
     </div>
   );
 }
@@ -272,7 +118,7 @@ function MediaGrid({ attachments }: { attachments: Memo["attachments"] }) {
               className="memo-file-link flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 hover:border-accent/50 hover:bg-accent/5 transition-all"
             >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                <i className={`fa-solid ${getFileIcon(f.type)} text-base`}></i>
+                <Icon name={getFileIcon(f.type)} size={18} />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-ink">{f.filename}</p>
@@ -286,7 +132,7 @@ function MediaGrid({ attachments }: { attachments: Memo["attachments"] }) {
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent transition-colors hover:bg-accent hover:text-white"
                 title="下载"
               >
-                <i className="fa-solid fa-download text-sm"></i>
+                <Icon name="download" size={15} />
               </a>
             </div>
           ))}
@@ -362,6 +208,7 @@ function EmbedCard({ url, children }: { url: string; children: React.ReactNode }
           className="w-full aspect-video border-0"
           allowFullScreen={true}
           loading="lazy"
+          title="Bilibili 视频"
         />
       </div>
     );
@@ -375,6 +222,7 @@ function EmbedCard({ url, children }: { url: string; children: React.ReactNode }
           className="w-full border-0"
           style={{ height: 86 }}
           loading="lazy"
+          title="网易云音乐"
         />
       </div>
     );
@@ -395,14 +243,14 @@ function EmbedCard({ url, children }: { url: string; children: React.ReactNode }
       className="memo-embed-card my-3 flex items-center gap-3 rounded-xl border border-line p-3 hover:border-accent/50 hover:bg-accent/5 transition-all"
     >
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
-        <i className={`fa-brands fa-${embed.platform === "douyin" ? "tiktok" : "apple"} text-lg`}></i>
+        <Icon name="external" size={18} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-ink">{children}</p>
         <p className="text-xs text-muted">{hostName}</p>
       </div>
       <div className="shrink-0 text-muted">
-        <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+        <Icon name="external" size={13} />
       </div>
     </a>
   );
@@ -411,8 +259,11 @@ function EmbedCard({ url, children }: { url: string; children: React.ReactNode }
 function LocationMarker({ location }: { location: Memo["location"] }) {
   if (!location?.placeholder) return null;
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-muted" title={`${location.latitude}, ${location.longitude}`}>
-      <i className="fa-solid fa-location-dot text-[10px]"></i>
+    <span
+      className="inline-flex items-center gap-1 text-xs text-muted"
+      title={`${location.latitude}, ${location.longitude}`}
+    >
+      <Icon name="location" size={12} />
       <span>{location.placeholder}</span>
     </span>
   );
@@ -508,6 +359,7 @@ export function MemosFeed({ memos }: { memos: Memo[] }) {
                           src={isMusic ? src.replace(/([?&])auto=1/, "$1auto=0") : src}
                           allowFullScreen={hasFullscreen}
                           frameBorder="0"
+                          title={isMusic ? "网易云音乐" : isBili ? "Bilibili 视频" : "嵌入内容"}
                           className={
                             isBili
                               ? "my-3 w-full aspect-video border-0 rounded-lg bg-black/5"
@@ -544,9 +396,7 @@ export function MemosFeed({ memos }: { memos: Memo[] }) {
 
             {inlineImages.length > 0 && <ImageGrid urls={inlineImages} />}
 
-            {memo.attachments?.length > 0 && (
-              <MediaGrid attachments={memo.attachments} />
-            )}
+            {memo.attachments?.length > 0 && <MediaGrid attachments={memo.attachments} />}
 
             {memo.location && (
               <div className="mt-3 pt-3 border-t border-line/40">

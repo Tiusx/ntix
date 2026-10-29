@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { SITE_CONFIG } from "@/site.config";
 import { Footer } from "@/components/footer";
+import { Icon, type IconName } from "@/components/icon";
 
 export const metadata: Metadata = {
   // 首页不单独写 title/description，直接继承 root layout 的
@@ -27,11 +28,11 @@ const SECTIONS: [string, string][] = [
   ["/memos/", "碎碎念"],
 ];
 
-const SOCIALS: [string, string, string][] = [
-  ["https://github.com/Tiusx", "fa-brands fa-github", "GitHub"],
-  ["https://space.bilibili.com/270426311", "fa-brands fa-bilibili", "Bilibili"],
-  ["mailto:hi@tius.cn", "fa-solid fa-envelope", "Email"],
-  ["/rss.xml", "fa-solid fa-rss", "RSS"],
+const SOCIALS: [string, IconName, string][] = [
+  ["https://github.com/Tiusx", "github", "GitHub"],
+  ["https://space.bilibili.com/270426311", "bilibili", "Bilibili"],
+  ["mailto:hi@tius.cn", "mail", "Email"],
+  ["/rss.xml", "rss", "RSS"],
 ];
 
 export default function Home() {
@@ -53,7 +54,7 @@ export default function Home() {
                 height={96}
                 className="size-full" />
             ) : (
-              <i className="fa-solid fa-feather text-3xl" aria-hidden="true" />
+              <Icon name="feather" size={30} />
             )}
           </div>
         </div>
@@ -72,7 +73,7 @@ export default function Home() {
 
         {/* Quote */}
         <p className="max-w-[520px] font-serif text-[1.25rem] font-normal italic leading-[1.7] text-muted">
-          <i className="fa-solid fa-quote-left mr-2 text-[0.85rem] text-muted" aria-hidden="true" />
+          <Icon name="quote" size={13} className="mr-2 inline-block align-baseline text-muted" />
           {SITE_CONFIG.description}
         </p>
 
@@ -84,9 +85,11 @@ export default function Home() {
               href={href}
               className="group/soc flex items-center gap-1.5 transition-all duration-200 ease-out hover:-translate-y-0.5"
             >
-              <i
-                className={`${icon} text-[0.85rem] text-muted transition-colors duration-200 group-hover/soc:text-ink`}
-                aria-hidden="true" />
+              <Icon
+                name={icon}
+                size={13}
+                className="text-muted transition-colors duration-200 group-hover/soc:text-ink"
+              />
               <span className="transition-colors duration-200 group-hover/soc:text-ink">
                 {label}
               </span>

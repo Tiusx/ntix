@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import type { SearchEntry } from "../src/lib/search-index";
+import { stripInlineMarkdown } from "../src/lib/text";
 import { listManagedSlugs } from "./notion/utils";
 
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
@@ -62,7 +63,7 @@ function buildEntries(): SearchEntry[] {
         tags: Array.isArray(meta.tags)
           ? meta.tags.filter((t): t is string => typeof t === "string")
           : [],
-        summary: typeof meta.summary === "string" ? meta.summary : "",
+        summary: typeof meta.summary === "string" ? stripInlineMarkdown(meta.summary) : "",
         content: stripMarkdown(content),
       };
     })
