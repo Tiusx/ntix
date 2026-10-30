@@ -6,7 +6,7 @@ import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
 import { getAllPages, getPage } from "@/lib/pages";
 import { withRssCanonical, buildKeywords, descriptionOrSite } from "@/lib/seo";
-import { GiscusComments } from "@/components/giscus-comments";
+import { Comments } from "@/components/comments";
 import { SITE_CONFIG } from "@/site.config";
 
 export const dynamicParams = false;
@@ -123,7 +123,7 @@ export default async function PagesLayout({
         </ReactMarkdown>
       </article>
 
-      {page.comment ? <GiscusComments /> : null}
+      {page.comment ? <Comments /> : null}
     </main>
   );
 }

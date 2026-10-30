@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { getAllPosts, getPostBody, getPostMeta, getPostStats } from "@/lib/posts";
 import { formatDate } from "@/lib/date";
 import LightboxImage from "@/components/lightbox-image";
-import { GiscusComments } from "@/components/giscus-comments";
+import { Comments } from "@/components/comments";
 import { Toc } from "@/components/toc";
 import { TocSidebar } from "@/components/toc-sidebar";
 import { Icon } from "@/components/icon";
@@ -218,7 +218,7 @@ export default async function PostPage({
           </nav>
         )}
 
-        <GiscusComments />
+        <Comments />
       </article>
     </main>
   );

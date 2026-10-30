@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-const GISCUS_CONFIG = {
-  repo: process.env.NEXT_PUBLIC_GISCUS_REPO || "",
-  repoId: process.env.NEXT_PUBLIC_GISCUS_REPO_ID || "",
-  category: process.env.NEXT_PUBLIC_GISCUS_CATEGORY || "",
-  categoryId: process.env.NEXT_PUBLIC_GISCUS_CATEGORY_ID || "",
-};
+import { GISCUS_CONFIG, GISCUS_ENABLED } from "@/lib/comments";
 
 const STORAGE_KEY = "ntix-theme";
 const THEME_ATTR = "data-theme";
@@ -34,12 +28,7 @@ function pushTheme(theme: GiscusTheme): void {
 export function GiscusComments() {
   const ref = useRef<HTMLDivElement>(null);
 
-  const enabled = Boolean(
-    GISCUS_CONFIG.repo &&
-      GISCUS_CONFIG.repoId &&
-      GISCUS_CONFIG.category &&
-      GISCUS_CONFIG.categoryId,
-  );
+  const enabled = GISCUS_ENABLED;
 
   useEffect(() => {
     if (!enabled) return;
@@ -89,5 +78,6 @@ export function GiscusComments() {
   }, [enabled]);
 
   if (!enabled) return null;
-  return <div ref={ref} className="mt-12 border-t border-line pt-8" />;
+  // 外层的分隔线与间距由 Comments 统一负责，这里只出评论本体
+  return <div ref={ref} />;
 }
