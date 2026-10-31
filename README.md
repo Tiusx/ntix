@@ -35,6 +35,7 @@ pnpm dev       # 本地开发
 | --- | --- |
 | `pnpm dev` | 本地开发服务器 |
 | `pnpm build` | 静态构建到 `out/` |
+| `pnpm build:clean` | 清掉残留构建进程与缓存后重新构建（构建「卡住」时用） |
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm lint` / `pnpm lint:fix` | ESLint（flat config） |
 | `pnpm format` | Prettier 格式化 |

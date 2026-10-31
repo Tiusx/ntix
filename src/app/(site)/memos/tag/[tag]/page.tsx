@@ -26,8 +26,8 @@ export async function generateMetadata({
   const name = decodeURIComponent(tag);
   return {
     title: `#${name}`,
-    description: `Tiusx 说说中标记为「${name}」的碎片记录：随手的读书笔记、行程见闻、生活片段与偶尔的技术想法。`,
-    keywords: buildKeywords([name, "说说", "memos"]),
+    description: `Tiusx 碎碎念中标记为「${name}」的碎片记录：随手的读书笔记、行程见闻、生活片段与偶尔的技术想法。`,
+    keywords: buildKeywords([name, "碎碎念", "memos"]),
     alternates: withRssCanonical(`/memos/tag/${encodeURIComponent(name)}/`),
   };
 }
@@ -49,7 +49,7 @@ export default async function MemosTagPage({
           href="/memos/"
           className="text-sm text-muted transition-colors hover:text-accent"
         >
-          ← 说说
+          ← 碎碎念
         </Link>
         <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs text-accent">
           #{name} · {memos.length}

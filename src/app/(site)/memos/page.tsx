@@ -2,16 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllMemos, getMemosPage, getMemosPageCount } from "@/lib/memos";
 import { MemosFeed } from "@/components/memos-feed";
-import { buildKeywords, withRssCanonical } from "@/lib/seo";
+import { Icon } from "@/components/icon";
+import { buildKeywords } from "@/lib/seo";
 
 const MEMOS_PER_PAGE = 20;
 
 export const metadata: Metadata = {
-  title: "说说",
+  title: "碎碎念",
   description:
     "Tiusx 的日常碎片与随手记录：读书、行程、踩坑与生活片段。较正式的技术内容会整理成文章发布，这里保留更随手、更短篇的部分。",
-  keywords: buildKeywords(["说说", "memos", "动态", "碎碎念", "生活记录"]),
-  alternates: withRssCanonical("/memos/"),
+  keywords: buildKeywords(["碎碎念", "memos", "日常", "生活记录"]),
+  // 碎碎念有自己的 feed，这里的自动发现要指向它，而不是只发文章的 /rss.xml
+  alternates: {
+    canonical: "/memos/",
+    types: {
+      "application/rss+xml": [{ url: "/memos/rss.xml", title: "Tiusx · 碎碎念 RSS" }],
+    },
+  },
 };
 
 function MemosPagination({ current }: { current: number }) {
@@ -51,9 +58,17 @@ export default function MemosPage() {
   return (
     <main className="content py-12">
       <header className="py-10">
-        <h1 className="text-4xl font-extrabold text-ink">说说</h1>
-        <div className="mt-3">
-          我的日常碎片和随口说说。共 {all.length} 条。
+        <h1 className="text-4xl font-extrabold text-ink">碎碎念</h1>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span>日常碎片与随手记。共 {all.length} 条。</span>
+          <a
+            href="/memos/rss.xml"
+            className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-accent"
+            aria-label="订阅碎碎念的 RSS"
+          >
+            <Icon name="rss" size={13} />
+            RSS 订阅
+          </a>
         </div>
       </header>
 

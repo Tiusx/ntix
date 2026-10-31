@@ -282,6 +282,7 @@ export function MemosFeed({ memos }: { memos: Memo[] }) {
         return (
           <article
             key={memo.slug}
+            id={memo.slug}
             className="mb-4 rounded-xl border border-line bg-card p-6 shadow-sm shadow-black/5 memo-card"
           >
             <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">

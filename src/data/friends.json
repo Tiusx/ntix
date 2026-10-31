@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Tiusx",
+    "site": "https://tius.cn/",
+    "description": "凡是过往，皆为序章",
+    "avatar": "https://r2.tius.cn/avatar/favicon.ico",
+    "feed": "https://www.tius.cn/rss.xml"
+  },
+  {
+    "name": "封尘",
+    "site": "https://lovefc.cn/",
+    "description": "封尘，lovefc，fc，个人主页",
+    "avatar": "https://lovefc.cn/usr/themes/nightsea/assets/img/tx2.gif",
+    "feed": "https://lovefc.cn/feed/"
+  },
+    {
+    "name": "北窗",
+    "site": "https://ai.lovefc.cn/",
+    "description": "凌晨写作者",
+    "avatar": "https://cravatar.cn/avatar/c009b11b53e4990254e28a93d5d4d91b?s=32&r=G",
+    "feed": "https://ai.lovefc.cn/index.php/feed/"
+  },
+  {
+    "name": "熊孝兵",
+    "site": "https://xxb.im/",
+    "description": "不妄自菲薄，不矫枉过正，不随波逐流，不固步自封。",
+    "avatar": "https://gravatar.loli.net/avatar/7a585313ed855e8d652cbb3154a6056e?s=300&d=mm&r=g",
+    "feed": "https://xxb.im/feed.xml"
+  },
+  {
+    "name": "贼歪",
+    "site": "https://varzy.me/",
+    "description": "Developer. Blogger. INFJ.",
+    "avatar": "https://cdn.varzy.me/static/zyavatar.png",
+    "feed": "https://varzy.me/rss.xml"
+  }
+]

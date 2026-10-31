@@ -14,10 +14,6 @@ export function Footer() {
           访客数 <span id="busuanzi_value_site_uv"></span> 人
         </span>
       </p>
-      <p>
-        Powered by <a href="https://nextjs.org" target="_blank" rel="noopener" className="hover:underline">Next.js</a> ·
-        Deployed on <a href="https://pages.cloudflare.com" target="_blank" rel="noopener" className="hover:underline">Cloudflare Pages</a>
-      </p>
     </footer>
   );
 }

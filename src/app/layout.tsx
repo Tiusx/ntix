@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { SITE_CONFIG } from "@/site.config";
 import { LightboxProvider } from "@/components/lightbox-provider";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { BackToTop } from "@/components/back-to-top";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { LIGHT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import { WEBFONT_HREF, WEBFONT_LOAD_SCRIPT } from "@/lib/fonts";
 import { withRss, ogDefaultImage, buildKeywords } from "@/lib/seo";
@@ -69,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {/* 右下角一列：主题切换在最下，回到顶部在它上方 */}
         <ThemeToggle />
         <BackToTop />
         <LightboxProvider>{children}</LightboxProvider>

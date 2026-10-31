@@ -39,6 +39,7 @@ yarn-error.log*
 
 # 构建产物：prebuild 自动生成
 /public/search-index.json
+/public/feeds.json
 /public/og/
 
 # IndexNow 提交指纹（本地生成；CI 用 actions/cache 保留）

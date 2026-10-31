@@ -61,7 +61,12 @@ function subscribe(onChange: () => void): () => void {
   };
 }
 
-export function Comments() {
+interface CommentsProps {
+  /** 评论区小标题。文章页默认「评论」，留言板这类场景可以换掉。 */
+  title?: string;
+}
+
+export function Comments({ title = "评论" }: CommentsProps) {
   const provider = useSyncExternalStore(subscribe, readProvider, () => null);
 
   if (!INITIAL) return null;
@@ -80,7 +85,7 @@ export function Comments() {
   return (
     <section className="mt-12 border-t border-line pt-7">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="font-mono text-[11px] tracking-[0.14em] text-muted">评论</h2>
+        <h2 className="font-mono text-[11px] tracking-[0.14em] text-muted">{title}</h2>
         {SWITCHABLE ? (
           <div
             role="group"

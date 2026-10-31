@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { SITE_CONFIG } from "@/site.config";
 import { Footer } from "@/components/footer";
 import { Icon, type IconName } from "@/components/icon";
+import { NAV_GROUPS } from "@/lib/nav";
 
 export const metadata: Metadata = {
   // 首页不单独写 title/description，直接继承 root layout 的
@@ -19,14 +20,6 @@ export const metadata: Metadata = {
       images: ogDefaultImage(),
   },
 };
-
-const SECTIONS: [string, string][] = [
-  ["/pages/about/", "@Me"],
-  ["/blog/", "博客"],
-  ["/archive/", "归档"],
-  ["/pages/friends/", "朋友"],
-  ["/memos/", "碎碎念"],
-];
 
 const SOCIALS: [string, IconName, string][] = [
   ["https://github.com/Tiusx", "github", "GitHub"],
@@ -99,16 +92,23 @@ export default function Home() {
 
         <span className="mt-5 block h-px w-14 bg-line" />
 
-        {/* Sections */}
-        <nav className="mt-4 flex flex-wrap items-baseline justify-center gap-x-3.5 gap-y-2 font-serif text-[1rem] text-sub">
-          {SECTIONS.map(([href, label], i) => (
-            <span key={href} className="flex items-baseline gap-x-3.5">
-              {i > 0 && <span className="text-muted">·</span>}
+        {/* Categories：一行横排，用 · 分隔；子项在对应分类页的页头里 */}
+        <nav
+          className="mt-7 flex flex-wrap items-baseline justify-center gap-x-3.5 gap-y-2 font-serif text-[1rem] text-sub"
+          aria-label="站点分类"
+        >
+          {NAV_GROUPS.map((group, index) => (
+            <span key={group.id} className="flex items-baseline gap-x-3.5">
+              {index > 0 ? (
+                <span className="text-muted" aria-hidden="true">
+                  ·
+                </span>
+              ) : null}
               <Link
-                href={href}
-                className="group/lnk relative transition-all duration-200 ease-out"
+                href={group.href}
+                className="group/lnk relative transition-all duration-200 ease-out hover:text-ink"
               >
-                {label}
+                {group.label}
                 <span className="absolute -bottom-0.5 left-1/2 block h-px w-0 -translate-x-1/2 bg-accent transition-all duration-200 group-hover/lnk:w-full" />
               </Link>
             </span>

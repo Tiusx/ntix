@@ -9,6 +9,7 @@ import { Comments } from "@/components/comments";
 import { Toc } from "@/components/toc";
 import { TocSidebar } from "@/components/toc-sidebar";
 import { Icon } from "@/components/icon";
+import { TagPill } from "@/components/tag-pill";
 import { extractHeadings, TOC_MIN_ENTRIES } from "@/lib/headings";
 import { SITE_CONFIG } from "@/site.config";
 
@@ -156,13 +157,7 @@ export default async function PostPage({
           {meta.tags.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-1.5">
               {meta.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/tags/${encodeURIComponent(tag)}/`}
-                  className="rounded-full border border-line px-2.5 py-0.5 text-[11px] text-muted transition-colors hover:border-accent hover:text-accent"
-                >
-                  {tag}
-                </Link>
+                <TagPill key={tag} tag={tag} />
               ))}
             </div>
           ) : null}

@@ -7,7 +7,15 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   images: { unoptimized: true },
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
-  allowedDevOrigins: ["192.168.2.158"],
+  /**
+   * dev 下允许访问 HMR 资源的来源。
+   *
+   * Next 16 默认拦截跨源 dev 资源：用 127.0.0.1:3000 打开页面时，HMR 的
+   * WebSocket 会被判为跨源并拦掉（控制台只有一行 Blocked cross-origin request），
+   * 表现是整站不水合、交互全失效、页面停在 SSR 骨架——很容易误判成组件 bug。
+   * localhost 与局域网 IP 都要列上。
+   */
+  allowedDevOrigins: ["127.0.0.1", "localhost", "192.168.2.158"],
   /**
    * dev 与 build 的 Turbopack 缓存必须分开。
    *

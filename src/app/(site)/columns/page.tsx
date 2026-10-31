@@ -7,6 +7,7 @@ import {
   getPostsCountByCategory,
 } from "@/lib/posts";
 import { buildKeywords, withRssCanonical } from "@/lib/seo";
+import { TagPill } from "@/components/tag-pill";
 
 export const metadata: Metadata = {
   title: "栏目",
@@ -66,17 +67,7 @@ export default function ColumnsPage() {
         </h2>
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <Link
-              key={tag.name}
-              href={`/tags/${encodeURIComponent(tag.name)}/`}
-              className="rounded-full border border-line px-3.5 py-1.5 text-sm text-ink transition-colors hover:border-accent hover:bg-card hover:text-accent"
-            >
-              <span className="text-muted">#</span>
-              {tag.name}
-              <span className="ml-1.5 text-xs tabular-nums text-muted">
-                {tag.count}
-              </span>
-            </Link>
+            <TagPill key={tag.name} tag={tag.name} count={tag.count} size="md" />
           ))}
         </div>
       </section>

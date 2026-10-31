@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icon";
+import { ICON_BUTTON_CLASS } from "@/components/icon-button";
 import { highlight, searchEntries, snippet } from "@/lib/search";
 import type { SearchEntry } from "@/lib/search-index";
 
@@ -89,14 +90,11 @@ export function SearchOverlay() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-muted transition-colors hover:text-ink"
+        className={ICON_BUTTON_CLASS}
         aria-label="搜索文章（按 / 或 ⌘K）"
+        title="搜索（/ 或 ⌘K）"
       >
-        <Icon name="search" size={14} />
-        <span className="hidden sm:inline">搜索</span>
-        <kbd className="hidden rounded border border-line px-1 font-mono text-[10px] text-muted sm:inline">
-          /
-        </kbd>
+        <Icon name="search" size={15} />
       </button>
 
       {open && (

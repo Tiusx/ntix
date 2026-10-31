@@ -138,7 +138,7 @@ describe("routeSignatures", () => {
   });
 
   it("总览页共享同一个汇总指纹", () => {
-    const overview = ["/", "/archive/", "/blog/", "/columns/", "/search/", "/memos/"];
+    const overview = ["/", "/archive/", "/blog/", "/circle/", "/columns/", "/gallery/", "/guestbook/", "/search/", "/memos/", "/memos/rss.xml"];
     const set = new Set(overview.map((p) => sigs.get(p)));
     expect(set.size).toBe(1);
   });

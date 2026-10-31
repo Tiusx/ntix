@@ -36,8 +36,15 @@ export function staticRoutePaths(): string[] {
     "/",
     "/archive/",
     "/blog/",
+    "/circle/",
     "/columns/",
+    // 友链页由 pages/friends/page.tsx 专门渲染（数据来自 src/data/friends.json），
+    // 不再依赖 content/pages/friends.md，所以要在静态路由里单独登记。
+    "/pages/friends/",
+    "/gallery/",
+    "/guestbook/",
     "/memos/",
+    "/memos/rss.xml",
     "/search/",
     "/tags/",
     "/rss.xml",
@@ -48,8 +55,16 @@ export function postRoutePaths(): string[] {
   return getAllPosts().map((p) => `/posts/${enc(p.slug)}/`);
 }
 
+/**
+ * content/pages 下的 markdown 页。
+ *
+ * friends 由静态路由提供（见 staticRoutePaths），这里必须排除——否则 Notion
+ * 同步一旦把 friends.md 拉回来，sitemap 里就会出现两条 /pages/friends/。
+ */
 export function pageRoutePaths(): string[] {
-  return getAllPages().map((p) => `/pages/${enc(p.slug)}/`);
+  return getAllPages()
+    .filter((page) => page.slug !== "friends")
+    .map((p) => `/pages/${enc(p.slug)}/`);
 }
 
 /** 分类页。分类是「规划中的 taxonomy」，即使 0 篇文章也会生成页面。 */
@@ -130,9 +145,15 @@ export function routeSignatures(pageSize: number): Map<string, string> {
   const posts = getAllPosts();
   const allSigs = posts.map((p) => `${p.slug}:${map.get(`/posts/${enc(p.slug)}/`)}`);
 
+  // 友链页的内容来自 src/data/friends.json，加人、改简介、换头像都该触发推送
+  map.set(
+    "/pages/friends/",
+    `friends:${fileHash(path.join(process.cwd(), "src", "data", "friends.json"))}`,
+  );
+
   // 总览页：依赖全部文章
   const globalSig = hashOf(allSigs);
-  for (const p of ["/", "/archive/", "/blog/", "/columns/", "/search/", "/memos/"]) {
+  for (const p of ["/", "/archive/", "/blog/", "/circle/", "/columns/", "/gallery/", "/guestbook/", "/search/", "/memos/", "/memos/rss.xml"]) {
     map.set(p, globalSig);
   }
   // /rss.xml 与 /tags/ 本身是入口页，随内容一起算全局

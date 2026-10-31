@@ -11,8 +11,19 @@ import { SITE_CONFIG } from "@/site.config";
 
 export const dynamicParams = false;
 
+/**
+ * /pages/friends/ 由专用路由（pages/friends/page.tsx）接管，这里必须排除。
+ *
+ * 它的数据来自 src/data/friends.json 而不是 markdown；若这里仍生成同名参数，
+ * 静态段与动态段会产出同一个路径（Next 报重复页），而且就算不报，页面也会
+ * 被 markdown 版本覆盖。
+ */
+const RESERVED_SLUGS = new Set(["friends"]);
+
 export function generateStaticParams() {
-  return getAllPages().map((page) => ({ slug: page.slug }));
+  return getAllPages()
+    .filter((page) => !RESERVED_SLUGS.has(page.slug))
+    .map((page) => ({ slug: page.slug }));
 }
 
 // ```timeline 代码围栏 → 时间线；每行 `时间 描述`（时间可用任意前缀 token）

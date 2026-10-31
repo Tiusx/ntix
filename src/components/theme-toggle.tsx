@@ -5,6 +5,15 @@ import { DARK_THEME, LIGHT_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 type Theme = "light" | "dark";
 
+/**
+ * 主题切换：固定在右下角的悬浮圆钮，全站由 root layout 挂一次。
+ *
+ * 它和「回到顶部」是同一列：主题在最下（bottom-5），回到顶部在其上方
+ * （bottom-20，见 back-to-top.tsx）。页头工具区只留搜索，不再放第二份。
+ */
+const FLOATING_CLASS =
+  "fixed bottom-5 right-5 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-card text-ink shadow-lg transition-colors hover:bg-accent hover:text-white";
+
 /** layout 的内联脚本会在首屏前把 data-theme 写到 <html> 上，这里以它为准。 */
 function subscribe(onStoreChange: () => void): () => void {
   const observer = new MutationObserver(onStoreChange);
@@ -50,7 +59,7 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-label={isDark ? "切换到浅色" : "切换到深色"}
       title={isDark ? "浅色模式" : "深色模式"}
-      className="fixed bottom-5 right-5 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-card text-ink shadow-lg transition-colors hover:bg-accent hover:text-white"
+      className={FLOATING_CLASS}
     >
       {isDark ? (
         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">

@@ -27,9 +27,9 @@ export async function generateMetadata({
   const pageCount = getMemosPageCount(MEMOS_PER_PAGE);
   const outOfRange = !Number.isInteger(current) || current < 2 || current > pageCount;
   return {
-    title: `说说 · 第 ${current} 页`,
-    description: `Tiusx 说说第 ${current} / ${pageCount} 页：日常碎片与随手记录，收录读书笔记、行程见闻、生活片段与偶尔的技术想法。`,
-    keywords: buildKeywords(["说说", "memos", "分页"]),
+    title: `碎碎念 · 第 ${current} 页`,
+    description: `Tiusx 碎碎念第 ${current} / ${pageCount} 页：日常碎片与随手记录，收录读书笔记、行程见闻、生活片段与偶尔的技术想法。`,
+    keywords: buildKeywords(["碎碎念", "memos", "分页"]),
     // 越界页 canonical 回指第 1 页，避免被索引为重复内容
     alternates: withRssCanonical(outOfRange ? "/memos/" : `/memos/${current}/`),
   };
@@ -49,7 +49,7 @@ export default async function MemosPage({
   }
 
   const all = getAllMemos();
-  // 越界（仅当说说不超过一页时的兜底占位参数可达）展示全部，
+  // 越界（仅当碎碎念不超过一页时的兜底占位参数可达）展示全部，
   // 理由同 tags/[tag]/[page]：静态导出下 notFound() 只会产出无内容的空壳页。
   const outOfRange = current > pageCount;
   const memos = outOfRange ? all : getMemosPage(current, MEMOS_PER_PAGE);
@@ -57,15 +57,15 @@ export default async function MemosPage({
   return (
     <main className="content py-12">
       <header className="py-10">
-        <h1 className="text-4xl font-extrabold text-ink">说说</h1>
+        <h1 className="text-4xl font-extrabold text-ink">碎碎念</h1>
         <div className="mt-3">
-          我的日常碎片和随口说说。共 {all.length} 条。
+          日常碎片与随手记。共 {all.length} 条。
         </div>
       </header>
 
       {outOfRange && (
         <p className="mb-8 border border-dashed border-line rounded-md px-4 py-3 text-sm text-muted">
-          说说只有 {pageCount} 页，已显示全部内容。
+          碎碎念只有 {pageCount} 页，已显示全部内容。
         </p>
       )}
 
