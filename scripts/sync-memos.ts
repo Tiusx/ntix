@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseSyncArgs } from "./lib/cli";
+import { contentFingerprint } from "./lib/fingerprint";
 import { toPublicAssetUrl, r2Bucket, r2PublicDomain } from "./lib/asset-url";
 import { loadEnv } from "./notion/utils";
 import { withRetry } from "./lib/retry";
@@ -16,6 +17,14 @@ loadEnv();
 const MEMOS_API = process.env.MEMOS_API || "https://memos.tius.cn/api/v1/memos";
 const OUTPUT_DIR = path.join(process.cwd(), "content", "memos");
 const PAGE_SIZE = 100;
+
+/**
+ * 允许「内容真的消失」的比例上限。
+ *
+ * 超过这个比例基本可以确定不是用户正常删几条，而是上游查询坏了
+ * （token 失效、数据库被清、visibility 被批量改）。此时保留旧快照更安全。
+ */
+const MAX_GONE_RATIO = 0.5;
 
 function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
@@ -85,6 +94,25 @@ function buildFrontmatter(input: Memo): string {
   return lines.join("\n");
 }
 
+/**
+ * 从已落盘的文件里读内容指纹：frontmatter 的 date + 正文。
+ *
+ * 不读 slug——正是因为 slug 会变才需要这套判断。格式不符（老文件、手工改过）
+ * 时返回 null，这类文件按「内容真的不在了」处理，宁可保守。
+ */
+function fingerprintOfFile(file: string): string | null {
+  try {
+    const raw = fs.readFileSync(file, "utf-8");
+    const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/.exec(raw);
+    if (!match) return null;
+    const date = /^date:\s*"([^"]*)"/m.exec(match[1])?.[1];
+    if (date == null) return null;
+    return contentFingerprint(date, match[2]);
+  } catch {
+    return null;
+  }
+}
+
 async function fetchAll(): Promise<Memo[]> {
   const memos: Memo[] = [];
   let pageToken = "";
@@ -128,14 +156,17 @@ async function fetchAll(): Promise<Memo[]> {
 function sync(
   memos: Memo[],
   dryRun: boolean,
+  force = false,
 ): { updated: number; deleted: number } {
   ensureDir(OUTPUT_DIR);
 
   const live = new Set<string>();
+  const liveFingerprints = new Set<string>();
   let written = 0;
   for (const memo of memos) {
     const slug = memo.name.replace(/^memos\//, "");
     live.add(slug);
+    liveFingerprints.add(contentFingerprint(memo.createTime, memo.content));
     const content = buildFrontmatter(memo);
     const file = path.join(OUTPUT_DIR, `${slug}.md`);
     if (fs.existsSync(file) && fs.readFileSync(file, "utf-8") === content) {
@@ -150,18 +181,45 @@ function sync(
     console.log(`📝 已写 content/memos/${slug}.md`);
   }
 
+  const diskFiles = fs
+    .readdirSync(OUTPUT_DIR)
+    .filter((file) => file.endsWith(".md"));
+  const orphans = diskFiles.filter((file) => !live.has(file.replace(/\.md$/, "")));
+  if (orphans.length === 0) return { updated: written, deleted: 0 };
+
+  // 孤儿分两类：uid 变了但内容还在（实例重建），和内容真的不在了（用户删除）。
+  // 前者删掉是安全的——同样的内容已经写进新文件；后者才是需要警惕的缩水。
+  const renamed: string[] = [];
+  const gone: string[] = [];
+  for (const file of orphans) {
+    const fingerprint = fingerprintOfFile(path.join(OUTPUT_DIR, file));
+    if (fingerprint && liveFingerprints.has(fingerprint)) renamed.push(file);
+    else gone.push(file);
+  }
+
+  // 真消失的比例过高，通常是上游查询出问题（而不是用户一次删了半个站），
+  // 保留现有快照、让人先看一眼；确认无误可用 --force 放行。
+  const goneRatio = diskFiles.length > 0 ? gone.length / diskFiles.length : 0;
+  if (gone.length > 0 && goneRatio > MAX_GONE_RATIO && !force) {
+    throw new Error(
+      `拒绝删除 ${gone.length}/${diskFiles.length} 条碎碎念（${Math.round(goneRatio * 100)}%）` +
+        `——其中只有 ${renamed.length} 条属于 uid 变化、内容仍在。` +
+        `请先确认 Memos 是否正常；确认无误后加 --force 再跑一次。`,
+    );
+  }
+
   let deleted = 0;
-  for (const file of fs.readdirSync(OUTPUT_DIR)) {
-    if (!file.endsWith(".md")) continue;
-    const slug = file.replace(/\.md$/, "");
-    if (live.has(slug)) continue;
+  for (const file of [...renamed, ...gone]) {
+    const isRenamed = renamed.includes(file);
     deleted++;
     if (dryRun) {
-      console.log(`🔍 [dry-run] would delete 已下架: ${file}`);
+      console.log(
+        `🔍 [dry-run] would delete ${isRenamed ? "旧 uid（内容已迁到新文件）" : "已下架"}: ${file}`,
+      );
       continue;
     }
     fs.unlinkSync(path.join(OUTPUT_DIR, file));
-    console.log(`🗑️  删除已下架: ${file}`);
+    console.log(`🗑️  删除${isRenamed ? "旧 uid" : "已下架"}: ${file}`);
   }
 
   return { updated: written, deleted };
@@ -182,7 +240,7 @@ async function main() {
   try {
     const memos = await fetchAll();
     console.log(`📚 共 ${memos.length} 条公开 Memos`);
-    const { updated, deleted } = sync(memos, args.dryRun);
+    const { updated, deleted } = sync(memos, args.dryRun, args.force);
     console.log(`🎉 完成！写入=${updated}, 删除=${deleted}, 线上共=${memos.length}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
