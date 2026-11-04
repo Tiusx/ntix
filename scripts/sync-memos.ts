@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseSyncArgs } from "./lib/cli";
 import { contentFingerprint } from "./lib/fingerprint";
+import { R2ImageUploader } from "./notion/r2-uploader";
 import { toPublicAssetUrl, r2Bucket, r2PublicDomain } from "./lib/asset-url";
 import { loadEnv } from "./notion/utils";
 import { withRetry } from "./lib/retry";
@@ -94,6 +95,72 @@ function normalizeMemo(memo: Memo): Memo {
   };
 }
 
+/**
+ * 判断地址是不是 Memos 自己的文件接口（兜底地址）。
+ *
+ * 这类地址虽然能打开，但吃的是 Memos 的带宽、且随实例存亡；只要 R2 可用，
+ * 就应该转存到图床，所以它和空链接一样算「待处理」。
+ */
+function isMemoFileUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const target = new URL(url);
+    const origin = new URL(MEMOS_API);
+    return target.host === origin.host && target.pathname.startsWith("/file/");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 补全附件地址。
+ *
+ * 正常情况 Memos 的 S3 后端会给出预签名链接（externalLink），由
+ * toPublicAssetUrl 改写成图床域名；但实例重建后 S3 配置可能丢失，
+ * 接口直接返回空串。这时把图片从 Memos 的文件接口下载、压成 WebP、
+ * 转存到 R2，复用图床链接——与文章配图走同一套存储。
+ *
+ * key 由内容寻址生成，pageId 固定为 `assets`（不用 memo uid）：
+ * 同一张图无论挂在哪个 uid 下都是同一个对象，uid 再变一次也不会重复上传，
+ * 重复同步则由 uploadExternal 内部的 HEAD 探测跳过。
+ */
+async function prepareAttachments(memos: Memo[], dryRun: boolean): Promise<void> {
+  const pending: Array<{ memo: Memo; attachment: MemoAttachment }> = [];
+  for (const memo of memos) {
+    for (const attachment of memo.attachments ?? []) {
+      if (!attachment.externalLink || isMemoFileUrl(attachment.externalLink)) {
+        pending.push({ memo, attachment });
+      }
+    }
+  }
+  if (pending.length === 0) return;
+
+  if (!R2ImageUploader.configured()) {
+    console.log(
+      `⚠️  ${pending.length} 个附件没有 externalLink，且 R2 未配置，回落到 Memos 文件接口`,
+    );
+    for (const { attachment } of pending) {
+      attachment.externalLink = memoFileUrl(attachment);
+    }
+    return;
+  }
+
+  console.log(`📦 ${pending.length} 个附件缺少 externalLink，转存到 R2…`);
+  const uploader = new R2ImageUploader({ dryRun });
+  for (const { attachment } of pending) {
+    const source = memoFileUrl(attachment);
+    if (!source) continue;
+    try {
+      const result = await uploader.uploadExternal(source, "memos", "assets");
+      attachment.externalLink = result.url;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`⚠️  转存失败，暂时回落到 Memos 文件接口：${message}`);
+      attachment.externalLink = source;
+    }
+  }
+}
+
 function buildFrontmatter(input: Memo): string {
   const memo = normalizeMemo(input);
   const slug = memo.name.replace(/^memos\//, "");
@@ -173,12 +240,15 @@ async function fetchAll(): Promise<Memo[]> {
   return memos;
 }
 
-function sync(
+async function sync(
   memos: Memo[],
   dryRun: boolean,
   force = false,
-): { updated: number; deleted: number } {
+): Promise<{ updated: number; deleted: number }> {
   ensureDir(OUTPUT_DIR);
+
+  // 附件先补齐地址（可能触发 R2 转存），再生成 frontmatter
+  await prepareAttachments(memos, dryRun);
 
   const live = new Set<string>();
   const liveFingerprints = new Set<string>();
@@ -260,7 +330,7 @@ async function main() {
   try {
     const memos = await fetchAll();
     console.log(`📚 共 ${memos.length} 条公开 Memos`);
-    const { updated, deleted } = sync(memos, args.dryRun, args.force);
+    const { updated, deleted } = await sync(memos, args.dryRun, args.force);
     console.log(`🎉 完成！写入=${updated}, 删除=${deleted}, 线上共=${memos.length}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
