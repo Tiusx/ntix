@@ -63,13 +63,33 @@ const esc = (value: string): string => value.replace(/"/g, '\\"');
  * 链接。本站是静态导出，链接会被固化进 markdown 快照，必须在这里改写为
  * 公开域名，否则快照里的图片会在签名过期后集体 403（详见 lib/asset-url.ts）。
  */
+/**
+ * Memos 未配置 S3（或整实例重建后没恢复存储配置）时，externalLink 是空串，
+ * 但附件本身还在，可以通过 Memos 自己的文件接口取到：/file/{name}/{filename}。
+ * 没有这层兜底，快照里会留下一堆没有地址的图片——前端只能渲染成空占位。
+ *
+ * 代价是图片走 Memos 的带宽而不是 CDN；等 S3 配置恢复后，上面的
+ * toPublicAssetUrl 会重新生效，这里自然退化成兜底。
+ */
+function memoFileUrl(attachment: MemoAttachment): string {
+  try {
+    const origin = new URL(MEMOS_API).origin;
+    const name = attachment.name.replace(/^\/+/, "");
+    if (!name || !attachment.filename) return "";
+    return `${origin}/file/${name}/${encodeURIComponent(attachment.filename)}`;
+  } catch {
+    return "";
+  }
+}
+
 function normalizeMemo(memo: Memo): Memo {
   const options = { publicDomain: r2PublicDomain(), bucket: r2Bucket() };
   return {
     ...memo,
     attachments: (memo.attachments ?? []).map((attachment) => ({
       ...attachment,
-      externalLink: toPublicAssetUrl(attachment.externalLink, options),
+      externalLink:
+        toPublicAssetUrl(attachment.externalLink, options) || memoFileUrl(attachment),
     })),
   };
 }
