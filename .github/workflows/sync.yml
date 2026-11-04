@@ -93,15 +93,21 @@ jobs:
           fi
 
           # 阶段 0 已在脚本内加了空集合熔断与 50% 比例阈值；
-          # 这里是最后一道防线：若本次提交将删除过多 markdown，直接拒绝提交。
-          deleted=$(git diff --cached --name-only --diff-filter=D -- content/ | grep -c '\.md$' || true)
-          total=$(git ls-files -- content/ | grep -c '\.md$' || true)
-          echo "markdown to delete: ${deleted} / tracked: ${total}"
-          if [ "${deleted}" -gt 0 ] && [ "${total}" -gt 0 ]; then
-            ratio=$(( deleted * 100 / total ))
-            if [ "${ratio}" -gt 20 ]; then
-              echo "::error::Refusing to commit: ${ratio}% of tracked markdown would be deleted (${deleted}/${total})."
-              echo "::error::Investigate before retrying — this usually means a misconfigured Notion query."
+          # 这里是最后一道防线：若本次提交会让 content 的 markdown **净减少**过多，直接拒绝提交。
+          #
+          # 只看 deleted 会误伤：Memos 实例重建后所有 uid 重新生成，一次同步表现为
+          # 「删 8 个旧文件 + 写 8 个新文件」，内容一字未变，但 deleted 计数照算。
+          # 而且 git 会把内容相同的改名识别为 rename，连 8 都数不全（曾数出 6/28）。
+          # 所以改比 HEAD 与暂存区的文件总数差值——增删相抵，只拦真正的缩水。
+          before=$(git ls-tree -r HEAD --name-only -- content/ | grep -c '\.md$' || true)
+          after=$(git ls-files -- content/ | grep -c '\.md$' || true)
+          net=$(( before - after ))
+          echo "content markdown: HEAD ${before} → staged ${after}（净减少 ${net}）"
+          if [ "${net}" -gt 0 ] && [ "${before}" -gt 0 ]; then
+            ratio=$(( net * 100 / before ))
+            if [ "${ratio}" -ge 15 ]; then
+              echo "::error::Refusing to commit: content markdown would shrink by ${ratio}% (${before} → ${after}, net -${net})."
+              echo "::error::Investigate before retrying — this usually means a misconfigured Notion / Memos query."
               exit 1
             fi
           fi
