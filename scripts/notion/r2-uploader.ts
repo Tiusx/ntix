@@ -131,14 +131,21 @@ export class R2ImageUploader {
    * 下载外部图片并上传到 R2（内容寻址、幂等）。
    * 若 key 已存在则 HEAD 跳过，保证重复执行不产生重复对象。
    */
-  async uploadExternal(url: string, label: string, pageId: string): Promise<ImageUploadResult> {
+  async uploadExternal(
+    url: string,
+    label: string,
+    pageId: string,
+    options: { timeoutMs?: number } = {},
+  ): Promise<ImageUploadResult> {
     console.log(`📥 Downloading image: ${url}`);
 
     const res = await withRetry(
       () =>
         fetch(url, {
           cache: "no-cache",
-          signal: AbortSignal.timeout(60_000),
+          // 大图（5MB 级）在慢链路上单次下载就要 30s+，60s 的默认值会把它们判死；
+          // 调用方可以按需放宽，文章配图仍走默认
+          signal: AbortSignal.timeout(options.timeoutMs ?? 60_000),
           headers: {
             "User-Agent": "Mozilla/5.0 (compatible; NotionImageUploader/1.0)",
           },

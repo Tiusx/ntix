@@ -151,7 +151,10 @@ async function prepareAttachments(memos: Memo[], dryRun: boolean): Promise<void>
     const source = memoFileUrl(attachment);
     if (!source) continue;
     try {
-      const result = await uploader.uploadExternal(source, "memos", "assets");
+      const result = await uploader.uploadExternal(source, "memos", "assets", {
+        // Memos 的附件常是几 MB 的原图，慢链路上 60s 不够
+        timeoutMs: 180_000,
+      });
       attachment.externalLink = result.url;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
