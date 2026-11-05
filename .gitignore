@@ -42,6 +42,9 @@ yarn-error.log*
 /public/feeds.json
 /public/og/
 
+# 主页方案预览（临时，用完删）
+/public/preview/
+
 # IndexNow 提交指纹（本地生成；CI 用 actions/cache 保留）
 /.indexnow-state.json
 
