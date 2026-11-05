@@ -35,11 +35,13 @@ html[data-theme="graphite"] {
 
   --bg: #1d2021;
   --surface: #262a2b;
-  --fg: #e8e4dc;
-  --secondary: #8a8378;
-  --muted: #b6ad9f;
-  --accent: #efe9db;
-  --border: #3a3830;
+  /* 文字色去黄：原先 #e8e4dc / #8a8378 / #b6ad9f 的蓝通道偏低，
+     整体泛米黄；改成 R≈G≈B 的中性灰，只给 accent 留一点温度 */
+  --fg: #e5e6e4;
+  --secondary: #8d8f8c;
+  --muted: #a9aba7;
+  --accent: #ecebe7;
+  --border: #383b3a;
 }
 
 
