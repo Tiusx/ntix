@@ -44,7 +44,9 @@ describe("路由清单", () => {
   });
 
   it("文章路由与文章数量一致，且都是 posts/", () => {
-    expect(postRoutePaths()).toHaveLength(29);
+    // 用例名说的就是「与文章数量一致」，就不该写死一个常量——
+    // 每发一篇新文章都得回来改数字，这种测试守不住任何东西
+    expect(postRoutePaths()).toHaveLength(getAllPosts().length);
     for (const p of postRoutePaths()) expect(p).toMatch(/^\/posts\/.+\/$/);
   });
 

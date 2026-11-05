@@ -47,11 +47,16 @@ export function PostList({
                   </span>
                 ) : null}
               </span>
-              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 font-serif text-base font-semibold leading-snug tracking-wide">
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 font-serif text-base leading-snug tracking-wide text-ink">
                 <span className="transition-colors group-hover:underline group-hover:decoration-accent group-hover:underline-offset-4">
                   {post.meta.title}
                 </span>
               </span>
+              {post.meta.summary ? (
+                <p className="line-clamp-2 text-[0.83rem] leading-[1.75] text-muted">
+                  {post.meta.summary}
+                </p>
+              ) : null}
             </Link>
           </li>
         ))}

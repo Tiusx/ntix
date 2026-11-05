@@ -20,8 +20,8 @@ import { FRIENDS, siteHost, type Friend } from "@/lib/friends";
 const SEEN_KEY = "ntix-circle-seen";
 const SEEN_EVENT = "ntix-circle-seen-change";
 
-/** 每批渲染条数：先出 12 条，滚到底再续，避免一进页面就铺 30+ 条。 */
-const PAGE_SIZE = 12;
+/** 每批渲染条数：先出 10 条，滚到底再续，避免一进页面就铺 30+ 条。 */
+const PAGE_SIZE = 10;
 
 function subscribeSeen(onChange: () => void): () => void {
   window.addEventListener(SEEN_EVENT, onChange);
