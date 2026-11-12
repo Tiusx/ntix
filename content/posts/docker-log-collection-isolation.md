@@ -7,7 +7,7 @@ tags: ["stdout", "隔离性", "挂载卷", "ELK", "Fluentd"]
 summary: "传统应用迁移Docker，挂载宿主机目录存日志破坏容器隔离性，介绍云原生stdout日志采集最佳实践。"
 status: "Published"
 page_id: "3dd16576-aec8-81b0-887e-d1a77f7a611e"
-last_edited_time: "2026-09-16T17:55:00.000Z"
+last_edited_time: "2026-11-12T16:11:00.000Z"
 ---
 
 

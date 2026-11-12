@@ -7,7 +7,7 @@ tags: ["Nginx", "try_files"]
 summary: "CentOS7下Nginx try_files一直404，return却正常，定位default.conf配置冲突问题。"
 status: "Published"
 page_id: "3dd16576-aec8-8157-b180-cfc857a1fd8f"
-last_edited_time: "2026-09-16T17:55:00.000Z"
+last_edited_time: "2026-11-12T16:11:00.000Z"
 ---
 
 

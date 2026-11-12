@@ -7,7 +7,7 @@ tags: ["SSH"]
 summary: "今天家里网络重启了，在折腾Mini主机时，Mini主机的ip也变了，发现ssh远程连不上"
 status: "Published"
 page_id: "3dd16576-aec8-8100-8688-d0c405ec90c8"
-last_edited_time: "2026-09-16T17:52:00.000Z"
+last_edited_time: "2026-11-12T16:10:00.000Z"
 ---
 
 

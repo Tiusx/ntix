@@ -7,7 +7,7 @@ tags: ["Memos", "Cloudflare", "Docker"]
 summary: "在 Docker 里跑 cloudflared 连不上隧道：先是 DNS 超时，再是 QUIC 握手超时，最后是 502。记录每一层的排查与解决。"
 status: "Published"
 page_id: "3dd16576-aec8-8194-80ce-ea936830affd"
-last_edited_time: "2026-09-16T17:51:00.000Z"
+last_edited_time: "2026-11-12T16:10:00.000Z"
 ---
 
 
