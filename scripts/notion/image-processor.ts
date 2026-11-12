@@ -1,9 +1,15 @@
 import { BlockObjectResponse, Client, PageObjectResponse } from "@notionhq/client";
-import { R2ImageUploader, isR2Url } from "./r2-uploader";
+import { R2ImageUploader, isR2Url, needsRepair } from "./r2-uploader";
 import { withRetry } from "../lib/retry";
 
 /** 块树递归深度上限，防御异常或循环的块结构。 */
 const MAX_BLOCK_DEPTH = 10;
+
+/**
+ * 重跑历史遗留资源（HEIC）时的下载超时。
+ * iPhone 原图普遍 3~5MB，默认 60s 在慢链路上会直接判死。
+ */
+const REPAIR_DOWNLOAD_TIMEOUT_MS = 180_000;
 
 export interface ImageProcessingStats {
   total: number;
@@ -127,6 +133,8 @@ export class NotionImageProcessor {
       const imageBlock = block.image;
       let imageUrl: string;
       let needsUpload = false;
+      /** 是否属于「历史遗留不可渲染格式」的重跑：iPhone 原图动辄 4MB+，下载超时要放宽 */
+      let repair = false;
 
       if (imageBlock.type === "file") {
         // Notion 托管的图片：需上传
@@ -134,13 +142,17 @@ export class NotionImageProcessor {
         needsUpload = true;
         console.log(`🔄 Found Notion-hosted image: ${block.id}`);
       } else if (imageBlock.type === "external") {
-        // 未托管在 R2 的外链：需上传；已托管则跳过
+        // 未托管在 R2 的外链需上传；已托管但存的是 HEIC 等不可渲染格式的，需要重跑转码
         imageUrl = imageBlock.external.url;
-        needsUpload = !isR2Url(imageUrl);
+        const hosted = isR2Url(imageUrl);
+        repair = hosted && needsRepair(imageUrl);
+        needsUpload = !hosted || repair;
         console.log(
-          needsUpload
-            ? `🔄 Found external image (not yet hosted): ${imageUrl}`
-            : `✅ Image already hosted: ${imageUrl}`,
+          repair
+            ? `🩹 Image stored in unrenderable format, re-encoding: ${imageUrl}`
+            : needsUpload
+              ? `🔄 Found external image (not yet hosted): ${imageUrl}`
+              : `✅ Image already hosted: ${imageUrl}`,
         );
       } else {
         stats.skipped++;
@@ -160,7 +172,9 @@ export class NotionImageProcessor {
       }
 
       try {
-        const uploadResult = await this.uploader.uploadExternal(imageUrl, this.imagePrefix, pageId);
+        const uploadResult = await this.uploader.uploadExternal(imageUrl, this.imagePrefix, pageId, {
+          timeoutMs: repair ? REPAIR_DOWNLOAD_TIMEOUT_MS : undefined,
+        });
 
         // 更新 Notion 块
         if (this.dryRun) {
@@ -217,6 +231,7 @@ export class NotionImageProcessor {
       for (const file of files) {
         let url: string;
         let needsUpload = false;
+        let repair = false;
 
         if (file.type === "file") {
           url = file.file.url;
@@ -224,11 +239,15 @@ export class NotionImageProcessor {
           console.log(`🔄 Found Notion-hosted property image in "${propName}": ${file.name}`);
         } else if (file.type === "external") {
           url = file.external.url;
-          needsUpload = !isR2Url(url);
+          const hosted = isR2Url(url);
+          repair = hosted && needsRepair(url);
+          needsUpload = !hosted || repair;
           console.log(
-            needsUpload
-              ? `🔄 Found external property image (not yet hosted) in "${propName}": ${url}`
-              : `✅ Property image already hosted in "${propName}"`,
+            repair
+              ? `🩹 Property image stored in unrenderable format, re-encoding in "${propName}": ${url}`
+              : needsUpload
+                ? `🔄 Found external property image (not yet hosted) in "${propName}": ${url}`
+                : `✅ Property image already hosted in "${propName}"`,
           );
         } else {
           newFiles.push(file);
@@ -248,7 +267,9 @@ export class NotionImageProcessor {
         }
 
         try {
-          const result = await this.uploader.uploadExternal(url, this.imagePrefix, page.id);
+          const result = await this.uploader.uploadExternal(url, this.imagePrefix, page.id, {
+            timeoutMs: repair ? REPAIR_DOWNLOAD_TIMEOUT_MS : undefined,
+          });
           newFiles.push({ type: "external", name: file.name || "", external: { url: result.url } });
           anyUpdated = true;
           console.log(`✅ Property image uploaded: ${result.fileName} -> ${result.url}`);

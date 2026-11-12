@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { optimizeImage } from "./image-optimizer";
-import { withRetry } from "../lib/retry";
+import { isTransientHttpError, withRetry } from "../lib/retry";
 import { r2Bucket, r2PublicDomain } from "../lib/asset-url";
 
 /**
@@ -72,6 +72,21 @@ export const composeNewImageKey = (
 };
 
 /**
+ * 浏览器无法直接渲染、必须重新转码的历史遗留格式。
+ *
+ * 旧版管线没有 HEIC 解码能力，会把原始 HEIC 以 `application/octet-stream`
+ * 直传图床，结果是文章里的裂图。这些对象已经「托管在 R2」，光靠 isR2Url
+ * 判断会被当成已处理而永久跳过，因此需要单独识别并重跑转码。
+ */
+const LEGACY_UNRENDERABLE_EXT = new Set(["heic", "heif"]);
+
+/**
+ * 判断是否为「已托管但格式不可渲染」的资源，命中即需重新下载 → 转码 → 换新 key 上传。
+ */
+export const needsRepair = (url: string): boolean =>
+  LEGACY_UNRENDERABLE_EXT.has(extractExtension(url));
+
+/**
  * 判断 URL 是否指向图床自定义域名（按 host 精确匹配）。
  * 命中 r2.tius.cn / rimg.tius.cn 或配置的 R2_HOSTED_DOMAINS 均视为已托管，跳过上传。
  */
@@ -89,6 +104,19 @@ export const is404 = (error: unknown): boolean => {
   if (typeof error !== "object" || error === null) return false;
   const e = error as { name?: string; $metadata?: { httpStatusCode?: number } };
   return e.name === "NoSuchKey" || e.name === "NotFound" || e.$metadata?.httpStatusCode === 404;
+};
+
+/**
+ * 下载失败是否值得重试：HTTP 瞬时错误（429/408/5xx）+ 底层网络错误。
+ *
+ * `fetch failed` / `terminated` / `TimeoutError` 这类错误没有 `status`，
+ * 用默认的 isTransientHttpError 会被判成「不可重试」直接抛出——
+ * 4MB 的 HEIC 原图在慢链路上抖一下整张图就废了，必须重试。
+ */
+const isRetryableDownloadError = (error: unknown): boolean => {
+  if (isTransientHttpError(error)) return true;
+  const status = (error as { status?: unknown } | null)?.status;
+  return typeof status !== "number";
 };
 
 export class R2ImageUploader {
@@ -150,7 +178,7 @@ export class R2ImageUploader {
             "User-Agent": "Mozilla/5.0 (compatible; NotionImageUploader/1.0)",
           },
         }),
-      { attempts: 2, label: `download image ${url.slice(0, 80)}` },
+      { attempts: 3, isRetryable: isRetryableDownloadError, label: `download image ${url.slice(0, 80)}` },
     );
 
     if (!res.ok) {
