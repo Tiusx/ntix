@@ -7,7 +7,7 @@ tags: ["系统", "Bios", "技术"]
 summary: "使用 DiskGenius 创建 ESP/MSR 分区并为 ESP 分配盘符，再在 WinNTSetup 中设置引导驱动器、选择 FAT32，并确认 EFI 指示灯为绿色后安装系统。"
 status: "Published"
 page_id: "41516576-aec8-8003-9236-d8d9f0a9c26c"
-last_edited_time: "2026-11-12T16:06:00.000Z"
+last_edited_time: "2026-11-12T17:45:00.000Z"
 ---
 
 
